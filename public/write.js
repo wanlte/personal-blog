@@ -7,7 +7,9 @@ async function publishArticle() {
     const title = document.getElementById('title').value.trim();
     const summary = document.getElementById('summary').value.trim();
     const content = document.getElementById('content').value.trim();
-    
+    const token = localStorage.getItem('token');
+
+
     // 验证标题
     if (!title) {
         showMessage('请填写文章标题', 'error');
@@ -22,7 +24,8 @@ async function publishArticle() {
         const response = await fetch('/api/articles', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 title: title,
@@ -30,6 +33,12 @@ async function publishArticle() {
                 content: content
             })
         });
+
+        if (response.status === 401) {
+            alert('请先登录');
+            window.location.href = '/login.html';
+            return;
+        }
         
         if (!response.ok) {
             const error = await response.json();

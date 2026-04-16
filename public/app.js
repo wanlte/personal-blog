@@ -26,6 +26,7 @@ async function loadArticles() {
                 <h2 class="article-title">${escapeHtml(article.title)}</h2>
                 <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
                 <div class="article-meta">
+                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
                     <span>📅 ${formatDate(article.created_at)}</span>
                     <span class="article-views">👁️ ${article.views} 次阅读</span>
                 </div>
@@ -56,6 +57,30 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// 检查登录状态
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const userInfo = document.getElementById('userInfo');
+    
+    if (token && user) {
+        userInfo.innerHTML = `
+            <span>👤 ${user.username}</span>
+            <button id="logoutBtn" class="logout-btn">退出</button>
+        `;
+        
+        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.reload();
+        });
+    } else {
+        userInfo.innerHTML = `<a href="/login.html" class="login-link">登录</a>`;
+    }
+}
+
+checkAuth();
 
 // 页面加载时执行
 loadArticles();
