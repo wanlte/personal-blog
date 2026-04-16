@@ -15,7 +15,7 @@ db.serialize(() => {
             content TEXT,
             summary TEXT,
             views INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TI1MESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `, (err) => {
