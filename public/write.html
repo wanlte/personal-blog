@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写文章 - 个人博客</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📝 写新文章</h1>
+            <p>分享你的想法</p>
+        </header>
+
+        <main>
+            <div class="write-form">
+                <div class="form-group">
+                    <label for="title">标题 *</label>
+                    <input type="text" id="title" placeholder="输入文章标题" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="summary">摘要</label>
+                    <textarea id="summary" rows="3" placeholder="简短介绍这篇文章..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content">正文</label>
+                    <textarea id="content" rows="12" placeholder="在这里写下你的内容..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button id="submitBtn" class="btn btn-primary">发布文章</button>
+                    <button id="cancelBtn" class="btn btn-secondary">取消</button>
+                </div>
+
+                <div id="message" class="message"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/write.js"></script>
+</body>
+</html>

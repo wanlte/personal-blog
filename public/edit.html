@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑文章 - 个人博客</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✏️ 编辑文章</h1>
+            <p>修改你的内容</p>
+            <div class="header-actions">
+                <a href="/write.html" class="write-btn">✍️ 写文章</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="write-form">
+                <input type="hidden" id="articleId">
+                
+                <div class="form-group">
+                    <label for="title">标题 *</label>
+                    <input type="text" id="title" placeholder="输入文章标题">
+                </div>
+
+                <div class="form-group">
+                    <label for="summary">摘要</label>
+                    <textarea id="summary" rows="3" placeholder="简短介绍..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content">正文</label>
+                    <textarea id="content" rows="12" placeholder="写下内容..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button id="updateBtn" class="btn btn-primary">更新文章</button>
+                    <button id="cancelBtn" class="btn btn-secondary">取消</button>
+                </div>
+
+                <div id="message" class="message"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/edit.js"></script>
+</body>
+</html>
