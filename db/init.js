@@ -60,6 +60,38 @@ db.serialize(() => {
     });
 });
 
+// 创建标签表
+db.run(`
+    CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+`, (err) => {
+    if (err) {
+        console.error('创建标签表失败:', err.message);
+    } else {
+        console.log('✅ 标签表创建成功');
+    }
+});
+
+// 创建文章-标签关联表（多对多）
+db.run(`
+    CREATE TABLE IF NOT EXISTS article_tags (
+        article_id INTEGER,
+        tag_id INTEGER,
+        FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        PRIMARY KEY (article_id, tag_id)
+    )
+`, (err) => {
+    if (err) {
+        console.error('创建文章标签关联表失败:', err.message);
+    } else {
+        console.log('✅ 文章标签关联表创建成功');
+    }
+});
+
 // 查询测试数据
 db.get('SELECT * FROM articles', (err, row) => {
     if (err) {

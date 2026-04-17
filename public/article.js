@@ -42,6 +42,7 @@ async function loadArticle() {
                 <div class="detail-content">
                     ${escapeHtml(article.content || '暂无内容').replace(/\n/g, '<br>')}
                 </div>
+                <div class="article-tags" id="articleTags"></div>
                 <div class="article-actions" id="articleActions">
                     <button id="editBtn" class="btn-edit">✏️ 编辑文章</button>
                     <button id="deleteBtn" class="btn-delete">🗑️ 删除文章</button>
@@ -51,6 +52,26 @@ async function loadArticle() {
                 </div>
             </div>
         `;
+
+        // 加载并显示标签
+        async function loadTags(articleId) {
+            try {
+                const response = await fetch(`/api/articles/${articleId}/tags`);
+                const tags = await response.json();
+        
+                const tagsContainer = document.getElementById('articleTags');
+                if (tagsContainer && tags.length > 0) {
+                    tagsContainer.innerHTML = tags.map(tag => 
+                        `<span class="tag">${escapeHtml(tag.name)}</span>`
+                    ).join('');
+                }
+            } catch (error) {
+                console.error('加载标签失败:', error);
+            }
+        }
+
+        // 在获取文章后调用
+        loadTags(articleId);
         
         // 获取当前登录用户信息
         const token = localStorage.getItem('token');

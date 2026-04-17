@@ -82,5 +82,36 @@ function checkAuth() {
 
 checkAuth();
 
+// 加载所有标签
+async function loadTags() {
+    const response = await fetch('/api/tags');
+    const tags = await response.json();
+    const tagList = document.getElementById('tagList');
+    
+    if (tagList && tags.length > 0) {
+        tagList.innerHTML = tags.map(tag => 
+            `<button class="tag-filter-btn" data-tag="${escapeHtml(tag.name)}">${escapeHtml(tag.name)}</button>`
+        ).join('');
+        
+        // 绑定筛选事件
+        document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tagName = btn.dataset.tag;
+                loadArticlesByTag(tagName);
+            });
+        });
+    }
+}
+
+// 按标签筛选文章
+async function loadArticlesByTag(tagName) {
+    const response = await fetch(`/api/articles?tag=${encodeURIComponent(tagName)}`);
+    const articles = await response.json();
+    renderArticles(articles);
+}
+
+// 在页面加载时调用
+loadTags();
+
 // 页面加载时执行
 loadArticles();

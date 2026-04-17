@@ -7,50 +7,53 @@ async function publishArticle() {
     const title = document.getElementById('title').value.trim();
     const summary = document.getElementById('summary').value.trim();
     const content = document.getElementById('content').value.trim();
-    const token = localStorage.getItem('token');
-
-
-    // 验证标题
+    const tagsInput = document.getElementById('tags').value.trim();
+    
     if (!title) {
         showMessage('请填写文章标题', 'error');
         return;
     }
     
-    // 显示加载状态
     submitBtn.disabled = true;
     submitBtn.textContent = '发布中...';
     
     try {
+        // 1. 创建文章
         const response = await fetch('/api/articles', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify({
-                title: title,
-                summary: summary,
-                content: content
-            })
+            body: JSON.stringify({ title, summary, content })
         });
-
-        if (response.status === 401) {
-            alert('请先登录');
-            window.location.href = '/login.html';
-            return;
-        }
         
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || '发布失败');
         }
         
-        const result = await response.json();
+        const article = await response.json();
+        
+        // 2. 添加标签
+        if (tagsInput) {
+            const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+            for (const tagName of tags) {
+                await fetch(`/api/articles/${article.id}/tags`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ tagName })
+                });
+            }
+        }
+        
         showMessage('✅ 文章发布成功！正在跳转...', 'success');
         
-        // 2秒后跳转到文章详情页
         setTimeout(() => {
-            window.location.href = `/article.html?id=${result.id}`;
+            window.location.href = `/article.html?id=${article.id}`;
         }, 1500);
         
     } catch (error) {
