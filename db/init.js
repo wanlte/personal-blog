@@ -92,6 +92,26 @@ db.run(`
     }
 });
 
+// 创建评论表
+db.run(`
+    CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT NOT NULL,
+        article_id INTEGER NOT NULL,
+        user_id INTEGER,
+        user_name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+`, (err) => {
+    if (err) {
+        console.error('创建评论表失败:', err.message);
+    } else {
+        console.log('✅ 评论表创建成功');
+    }
+});
+
 // 查询测试数据
 db.get('SELECT * FROM articles', (err, row) => {
     if (err) {

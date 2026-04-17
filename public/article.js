@@ -1,3 +1,5 @@
+let currentUserId = null;
+
 // 获取 URL 中的文章 ID
 function getArticleId() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -85,6 +87,9 @@ async function loadArticle() {
                 console.error('解析token失败', e);
             }
         }
+
+        // 设置当前用户ID（供评论功能使用）
+        currentUserId = currentUser ? currentUser.id : null;
         
         // 判断是否是文章作者
         const isAuthor = currentUser && currentUser.id === article.user_id;
@@ -125,6 +130,14 @@ async function loadArticle() {
                 actionsDiv.style.display = 'none';
             }
         }
+
+        // 加载评论
+        await loadComments(articleId);
+        
+        // 绑定发表评论按钮
+        document.getElementById('submitCommentBtn')?.addEventListener('click', () => {
+            submitComment(articleId);
+        });
         
     } catch (error) {
         console.error('加载失败:', error);
@@ -152,3 +165,4 @@ function escapeHtml(text) {
 
 // 页面加载时执行
 loadArticle();
+
