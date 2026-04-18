@@ -723,6 +723,58 @@ app.put('/api/articles/:id/pin', authenticateToken, (req, res) => {
     });
 });
 
+// ==================== RSS 订阅 API ====================
+
+const RSS = require('rss');
+
+// GET /rss.xml - 生成 RSS 订阅源
+app.get('/rss.xml', (req, res) => {
+    // 获取最新10篇文章
+    const sql = `
+        SELECT articles.*, users.username as author_name 
+        FROM articles 
+        LEFT JOIN users ON articles.user_id = users.id 
+        ORDER BY articles.created_at DESC 
+        LIMIT 10
+    `;
+    
+    db.all(sql, [], (err, articles) => {
+        if (err) {
+            console.error('获取文章失败:', err.message);
+            res.status(500).send('服务器错误');
+            return;
+        }
+        
+        // 创建 RSS feed
+        const feed = new RSS({
+            title: '个人博客',
+            description: '记录学习与成长',
+            feed_url: 'http://localhost:3000/rss.xml',
+            site_url: 'http://localhost:3000',
+            language: 'zh-cn',
+            copyright: `Copyright ${new Date().getFullYear()} 个人博客`,
+            pubDate: new Date(),
+            ttl: 60  // 缓存时间（分钟）
+        });
+        
+        // 添加文章到 RSS
+        articles.forEach(article => {
+            feed.item({
+                title: article.title,
+                description: article.summary || article.content?.substring(0, 200) || '暂无摘要',
+                url: `http://localhost:3000/article.html?id=${article.id}`,
+                author: article.author_name || '匿名',
+                date: article.created_at,
+                guid: article.id.toString()
+            });
+        });
+        
+        // 设置响应头为 XML
+        res.set('Content-Type', 'application/rss+xml');
+        res.send(feed.xml());
+    });
+});
+
 // app.get('/', (req, res) => {
 //     res.send('服务器运行正常！');
 // });

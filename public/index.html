@@ -17,6 +17,7 @@
                     <button id="searchBtn" class="search-btn">🔍</button>
                 </div>
                 <div id="userInfo" class="user-info"></div>
+                <a href="/rss.xml" class="rss-btn" target="_blank">📡 RSS</a>
                 <a href="/write.html" class="write-btn">✍️ 写文章</a>
             </div>
         </header>
@@ -53,9 +54,29 @@
                     <h3>🏷️ 标签云</h3>
                     <div id="tagList" class="tag-cloud"></div>
                 </div>
+
+                <!-- RSS 订阅提示 -->
+                <div class="sidebar-section">
+                    <h3>📡 订阅博客</h3>
+                    <div class="rss-tip">
+                        <p>通过 RSS 阅读器订阅：</p>
+                        <a href="/rss.xml" class="rss-link" target="_blank">
+                            <code>http://localhost:3000/rss.xml</code>
+                        </a>
+                        <p class="rss-note">支持 Feedly、Inoreader 等阅读器</p>
+                    </div>
+                </div>
             </aside>
         </div>
     </div>
+
+    <footer class="footer">
+        <p>© 2024 个人博客 | 由 Node.js + Express 驱动</p>
+        <p>
+            <a href="/rss.xml">📡 RSS 订阅</a> | 
+            <a href="https://github.com/你的用户名/personal-blog" target="_blank">GitHub</a>
+        </p>
+    </footer>
 
     <script src="/app.js"></script>
 </body>
