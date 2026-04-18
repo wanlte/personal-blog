@@ -1,3 +1,33 @@
+//=================1.工具类======================
+
+// 格式化日期
+function formatDate(dateStr) {
+    if (!dateStr) return '未知日期';
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// 防止 XSS 攻击
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 转义正则表达式特殊字符
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 高亮关键词
+function highlightKeyword(text, keyword) {
+    if (!keyword || !text) return text;
+    const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
+//=================2.核心功能===============
+
 // 获取文章列表并显示
 async function loadArticles() {
     const articlesList = document.getElementById('articlesList');
@@ -44,20 +74,7 @@ function viewArticle(id) {
     window.location.href = `/article.html?id=${id}`;
 }
 
-// 格式化日期
-function formatDate(dateStr) {
-    if (!dateStr) return '未知日期';
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-// 防止 XSS 攻击
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
+//=================3.认证功能======================
 // 检查登录状态
 function checkAuth() {
     const token = localStorage.getItem('token');
@@ -80,44 +97,66 @@ function checkAuth() {
     }
 }
 
-
-checkAuth();
-
-//===================标签筛选======================
-
-// 加载所有标签
+//=================4.标签功能======================
+// 修改标签加载函数，使用标签云样式
 async function loadTags() {
-    const response = await fetch('/api/tags');
-    const tags = await response.json();
-    const tagList = document.getElementById('tagList');
-    
-    if (tagList && tags.length > 0) {
-        tagList.innerHTML = tags.map(tag => 
-            `<button class="tag-filter-btn" data-tag="${escapeHtml(tag.name)}">${escapeHtml(tag.name)}</button>`
-        ).join('');
+    try {
+        const response = await fetch('/api/tags');
+        const tags = await response.json();
+        const tagList = document.getElementById('tagList');
         
-        // 绑定筛选事件
-        document.querySelectorAll('.tag-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tagName = btn.dataset.tag;
-                loadArticlesByTag(tagName);
+        if (tagList && tags.length > 0) {
+            tagList.innerHTML = tags.map(tag => 
+                `<span class="tag" data-tag="${escapeHtml(tag.name)}">${escapeHtml(tag.name)}</span>`
+            ).join('');
+            
+            // 绑定筛选事件
+            document.querySelectorAll('#tagList .tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const tagName = tag.dataset.tag;
+                    loadArticlesByTag(tagName);
+                });
             });
-        });
+        }
+    } catch (error) {
+        console.error('加载标签失败:', error);
     }
 }
 
-// 在页面加载时调用标签筛选
-loadTags();
-
-//===================搜索======================
-
 // 按标签筛选文章
 async function loadArticlesByTag(tagName) {
-    const response = await fetch(`/api/articles?tag=${encodeURIComponent(tagName)}`);
-    const articles = await response.json();
-    renderArticles(articles);
+    const articlesList = document.getElementById('articlesList');
+    
+    try {
+        articlesList.innerHTML = '<div class="loading">🏷️ 筛选文章中...</div>';
+        
+        const response = await fetch(`/api/articles?tag=${encodeURIComponent(tagName)}`);
+        const articles = await response.json();
+        
+        if (articles.length === 0) {
+            articlesList.innerHTML = '<div class="empty">📭 没有找到相关标签的文章</div>';
+            return;
+        }
+        
+        articlesList.innerHTML = articles.map(article => `
+            <div class="article-card" onclick="viewArticle(${article.id})">
+                <h2 class="article-title">${escapeHtml(article.title)}</h2>
+                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+                <div class="article-meta">
+                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                    <span>📅 ${formatDate(article.created_at)}</span>
+                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('筛选失败:', error);
+        articlesList.innerHTML = '<div class="error">❌ 筛选失败</div>';
+    }
 }
 
+//=================5.搜索功能======================
 // 搜索文章
 async function searchArticles() {
     const keyword = document.getElementById('searchInput').value.trim();
@@ -164,31 +203,72 @@ async function searchArticles() {
     }
 }
 
-// 高亮关键词
-function highlightKeyword(text, keyword) {
-    if (!keyword || !text) return text;
-    const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
-    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
-}
-
-// 转义正则表达式特殊字符
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// 绑定搜索事件
-document.getElementById('searchBtn')?.addEventListener('click', searchArticles);
-document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        searchArticles();
-    }
-});
-
 // 清空搜索的按钮（可选）
 function clearSearch() {
     document.getElementById('searchInput').value = '';
     loadArticles();
 }
 
-// 页面加载时执行加载文章
-loadArticles();
+
+//=================6.排行榜功能======================
+// 加载热门文章排行榜
+async function loadPopularArticles() {
+    const popularList = document.getElementById('popularList');
+    
+    if (!popularList) return;
+    
+    try {
+        const response = await fetch('/api/popular?limit=5');
+        const articles = await response.json();
+        
+        if (articles.length === 0) {
+            popularList.innerHTML = '<div class="empty">暂无热门文章</div>';
+            return;
+        }
+        
+        popularList.innerHTML = articles.map((article, index) => {
+            let rankClass = '';
+            if (index === 0) rankClass = 'top1';
+            else if (index === 1) rankClass = 'top2';
+            else if (index === 2) rankClass = 'top3';
+            
+            return `
+                <div class="popular-item" onclick="viewArticle(${article.id})">
+                    <div class="popular-rank ${rankClass}">${index + 1}</div>
+                    <div class="popular-info">
+                        <div class="popular-title">${escapeHtml(article.title)}</div>
+                        <div class="popular-views">👁️ ${article.views} 次阅读</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        popularList.innerHTML = '<div class="error">加载失败</div>';
+    }
+}
+
+
+// 页面加载时执行初始化操作
+document.addEventListener('DOMContentLoaded', () => {
+    loadArticles();
+    loadPopularArticles();  // 新增
+    loadTags();
+    checkAuth();
+    
+    // 绑定搜索事件
+    const searchBtn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchArticles);
+    }
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchArticles();
+            }
+        });
+    }
+});

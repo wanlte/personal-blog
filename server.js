@@ -589,6 +589,32 @@ app.get('/api/search', (req, res) => {
     });
 });
 
+// ==================== 排行榜 API ====================
+
+// GET /api/popular - 获取热门文章（按阅读量排序）
+app.get('/api/popular', (req, res) => {
+    const limit = parseInt(req.query.limit) || 5;  // 默认前5名
+    
+    const sql = `
+        SELECT articles.id, articles.title, articles.summary, articles.views, 
+               articles.created_at, users.username as author_name
+        FROM articles 
+        LEFT JOIN users ON articles.user_id = users.id 
+        WHERE articles.views > 0
+        ORDER BY articles.views DESC
+        LIMIT ?
+    `;
+    
+    db.all(sql, [limit], (err, rows) => {
+        if (err) {
+            console.error('获取排行榜失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
 // app.get('/', (req, res) => {
 //     res.send('服务器运行正常！');
 // });
