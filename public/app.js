@@ -50,17 +50,20 @@ async function loadArticles() {
             return;
         }
         
-        // 渲染文章列表
+       // 渲染文章列表
         articlesList.innerHTML = articles.map(article => `
-            <div class="article-card" onclick="viewArticle(${article.id})">
+        <div class="article-card ${article.is_pinned === 1 ? 'pinned' : ''}" onclick="viewArticle(${article.id})">
+            <div class="article-header">
+                ${article.is_pinned === 1 ? '<span class="pinned-badge">📌 置顶</span>' : ''}
                 <h2 class="article-title">${escapeHtml(article.title)}</h2>
-                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
-                <div class="article-meta">
-                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
-                    <span>📅 ${formatDate(article.created_at)}</span>
-                    <span class="article-views">👁️ ${article.views} 次阅读</span>
-                </div>
             </div>
+            <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+            <div class="article-meta">
+                <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                <span>📅 ${formatDate(article.created_at)}</span>
+                <span class="article-views">👁️ ${article.views} 次阅读</span>
+            </div>
+        </div>
         `).join('');
         
     } catch (error) {

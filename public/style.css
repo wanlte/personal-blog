@@ -748,3 +748,48 @@ header h1 {
 .clear-filter:hover {
     text-decoration: underline;
 }
+
+/* 置顶文章样式 */
+.article-card.pinned {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+    border-left: 4px solid #f59e0b;
+}
+
+.pinned-badge {
+    display: inline-block;
+    background: #f59e0b;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 10px;
+}
+
+.article-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.article-header .article-title {
+    margin-bottom: 0;
+}
+
+/* 置顶按钮样式 */
+.btn-pin {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #667eea;
+    color: white;
+}
+
+.btn-pin:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}

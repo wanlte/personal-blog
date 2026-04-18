@@ -137,17 +137,35 @@ function authenticateToken(req, res, next) {
 }
 
 
+
 // GET - 获取所有文章
-// GET - 获取所有文章（关联作者信息）
 app.get('/api/articles', (req, res) => {
-    const sql = `
-        SELECT articles.*, users.username as author_name 
-        FROM articles 
-        LEFT JOIN users ON articles.user_id = users.id 
-        ORDER BY articles.created_at DESC
-    `;
+    const tagName = req.query.tag;
     
-    db.all(sql, [], (err, rows) => {
+    let sql;
+    let params = [];
+    
+    if (tagName) {
+        sql = `
+            SELECT articles.*, users.username as author_name 
+            FROM articles 
+            LEFT JOIN users ON articles.user_id = users.id 
+            LEFT JOIN article_tags ON articles.id = article_tags.article_id
+            LEFT JOIN tags ON article_tags.tag_id = tags.id
+            WHERE tags.name = ?
+            ORDER BY articles.is_pinned DESC, articles.created_at DESC
+        `;
+        params = [tagName];
+    } else {
+        sql = `
+            SELECT articles.*, users.username as author_name 
+            FROM articles 
+            LEFT JOIN users ON articles.user_id = users.id 
+            ORDER BY articles.is_pinned DESC, articles.created_at DESC
+        `;
+    }
+    
+    db.all(sql, params, (err, rows) => {
         if (err) {
             console.error('查询失败:', err.message);
             res.status(500).json({ error: err.message });
@@ -157,7 +175,7 @@ app.get('/api/articles', (req, res) => {
     });
 });
 
-// GET - 获取单篇文章（关联作者信息）
+// GET - 获取单篇文章
 app.get('/api/articles/:id', (req, res) => {
     const { id } = req.params;
     
@@ -561,7 +579,7 @@ app.delete('/api/comments/:id', authenticateToken, (req, res) => {
 
 // ==================== 搜索 API ====================
 
-// GET /api/search?q=关键词 - 搜索文章
+// GET /api/search - 搜索文章
 app.get('/api/search', (req, res) => {
     const keyword = req.query.q;
     
@@ -576,7 +594,7 @@ app.get('/api/search', (req, res) => {
         FROM articles 
         LEFT JOIN users ON articles.user_id = users.id 
         WHERE articles.title LIKE ? OR articles.content LIKE ? OR articles.summary LIKE ?
-        ORDER BY articles.created_at DESC
+        ORDER BY articles.is_pinned DESC, articles.created_at DESC
     `;
     
     db.all(sql, [searchTerm, searchTerm, searchTerm], (err, rows) => {
@@ -659,6 +677,49 @@ app.get('/api/archive/:yearMonth', (req, res) => {
             return;
         }
         res.json(rows);
+    });
+});
+
+// ==================== 置顶 API ====================
+
+// PUT /api/articles/:id/pin - 切换置顶状态（需要作者权限）
+app.put('/api/articles/:id/pin', authenticateToken, (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    // 先检查文章是否属于当前用户
+    const checkSql = `SELECT user_id, is_pinned FROM articles WHERE id = ?`;
+    db.get(checkSql, [id], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        
+        if (!row) {
+            res.status(404).json({ error: '文章不存在' });
+            return;
+        }
+        
+        if (row.user_id !== userId) {
+            res.status(403).json({ error: '无权操作此文章' });
+            return;
+        }
+        
+        const newPinStatus = row.is_pinned === 1 ? 0 : 1;
+        const sql = `UPDATE articles SET is_pinned = ? WHERE id = ?`;
+        
+        db.run(sql, [newPinStatus, id], function(err) {
+            if (err) {
+                console.error('置顶操作失败:', err.message);
+                res.status(500).json({ error: '服务器错误' });
+                return;
+            }
+            
+            res.json({ 
+                message: newPinStatus === 1 ? '文章已置顶' : '已取消置顶',
+                is_pinned: newPinStatus
+            });
+        });
     });
 });
 

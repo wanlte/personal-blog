@@ -46,6 +46,7 @@ async function loadArticle() {
                 </div>
                 <div class="article-tags" id="articleTags"></div>
                 <div class="article-actions" id="articleActions">
+                    <button id="pinBtn" class="btn-pin">📌 置顶</button>
                     <button id="editBtn" class="btn-edit">✏️ 编辑文章</button>
                     <button id="deleteBtn" class="btn-delete">🗑️ 删除文章</button>
                 </div>
@@ -99,6 +100,32 @@ async function loadArticle() {
         if (actionsDiv) {
             if (isAuthor) {
                 actionsDiv.style.display = 'flex';
+
+                // 置顶按钮
+                const pinBtn = document.getElementById('pinBtn');
+                if (pinBtn) {
+                    pinBtn.textContent = article.is_pinned === 1 ? '📍 已置顶' : '📌 置顶';
+                    pinBtn.style.background = article.is_pinned === 1 ? '#10b981' : '#667eea';
+                    pinBtn.addEventListener('click', async () => {
+                        try {
+                            const response = await fetch(`/api/articles/${article.id}/pin`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                            if (response.ok) {
+                                const data = await response.json(); 
+                                window.location.reload(); // 刷新页面显示新状态
+                            } else {
+                                alert('操作失败');
+                            }
+                        } catch (err) {
+                            console.error('置顶失败:', err);
+                            alert('操作失败');
+                        }
+                    });
+                }
                 // 绑定编辑按钮
                 document.getElementById('editBtn')?.addEventListener('click', () => {
                     window.location.href = `/edit.html?id=${article.id}&title=${encodeURIComponent(article.title)}&summary=${encodeURIComponent(article.summary || '')}&content=${encodeURIComponent(article.content || '')}`;
