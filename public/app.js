@@ -80,7 +80,10 @@ function checkAuth() {
     }
 }
 
+
 checkAuth();
+
+//===================标签筛选======================
 
 // 加载所有标签
 async function loadTags() {
@@ -103,6 +106,11 @@ async function loadTags() {
     }
 }
 
+// 在页面加载时调用标签筛选
+loadTags();
+
+//===================搜索======================
+
 // 按标签筛选文章
 async function loadArticlesByTag(tagName) {
     const response = await fetch(`/api/articles?tag=${encodeURIComponent(tagName)}`);
@@ -110,8 +118,77 @@ async function loadArticlesByTag(tagName) {
     renderArticles(articles);
 }
 
-// 在页面加载时调用
-loadTags();
+// 搜索文章
+async function searchArticles() {
+    const keyword = document.getElementById('searchInput').value.trim();
+    
+    if (!keyword) {
+        loadArticles();  // 没有关键词，加载全部文章
+        return;
+    }
+    
+    const articlesList = document.getElementById('articlesList');
+    
+    try {
+        articlesList.innerHTML = '<div class="loading">🔍 搜索中...</div>';
+        
+        const response = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
+        
+        if (!response.ok) {
+            throw new Error('搜索失败');
+        }
+        
+        const articles = await response.json();
+        
+        if (articles.length === 0) {
+            articlesList.innerHTML = '<div class="empty">😢 没有找到相关文章</div>';
+            return;
+        }
+        
+        // 渲染搜索结果，高亮关键词
+        articlesList.innerHTML = articles.map(article => `
+            <div class="article-card" onclick="viewArticle(${article.id})">
+                <h2 class="article-title">${highlightKeyword(escapeHtml(article.title), keyword)}</h2>
+                <p class="article-summary">${highlightKeyword(escapeHtml(article.summary || '暂无摘要'), keyword)}</p>
+                <div class="article-meta">
+                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                    <span>📅 ${formatDate(article.created_at)}</span>
+                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('搜索失败:', error);
+        articlesList.innerHTML = '<div class="error">❌ 搜索失败，请稍后重试</div>';
+    }
+}
 
-// 页面加载时执行
+// 高亮关键词
+function highlightKeyword(text, keyword) {
+    if (!keyword || !text) return text;
+    const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
+// 转义正则表达式特殊字符
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 绑定搜索事件
+document.getElementById('searchBtn')?.addEventListener('click', searchArticles);
+document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        searchArticles();
+    }
+});
+
+// 清空搜索的按钮（可选）
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    loadArticles();
+}
+
+// 页面加载时执行加载文章
 loadArticles();

@@ -452,3 +452,50 @@ header h1 {
 .user-badge-warning {
     color: #e74c3c;
 }
+
+
+/* 搜索框样式 */
+.search-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-input {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 14px;
+    width: 200px;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    width: 250px;
+}
+
+.search-btn {
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.search-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* 搜索结果高亮 */
+.search-highlight {
+    background-color: #ffeb3b;
+    padding: 0 2px;
+    border-radius: 2px;
+}

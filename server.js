@@ -559,6 +559,36 @@ app.delete('/api/comments/:id', authenticateToken, (req, res) => {
     });
 });
 
+// ==================== 搜索 API ====================
+
+// GET /api/search?q=关键词 - 搜索文章
+app.get('/api/search', (req, res) => {
+    const keyword = req.query.q;
+    
+    if (!keyword || keyword.trim() === '') {
+        res.status(400).json({ error: '搜索关键词不能为空' });
+        return;
+    }
+    
+    const searchTerm = `%${keyword.trim()}%`;
+    const sql = `
+        SELECT articles.*, users.username as author_name 
+        FROM articles 
+        LEFT JOIN users ON articles.user_id = users.id 
+        WHERE articles.title LIKE ? OR articles.content LIKE ? OR articles.summary LIKE ?
+        ORDER BY articles.created_at DESC
+    `;
+    
+    db.all(sql, [searchTerm, searchTerm, searchTerm], (err, rows) => {
+        if (err) {
+            console.error('搜索失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
 // app.get('/', (req, res) => {
 //     res.send('服务器运行正常！');
 // });
