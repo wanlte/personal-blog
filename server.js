@@ -615,6 +615,53 @@ app.get('/api/popular', (req, res) => {
     });
 });
 
+// ==================== 归档 API ====================
+
+// GET /api/archive - 获取文章归档（按年月分组）
+app.get('/api/archive', (req, res) => {
+    const sql = `
+        SELECT 
+            strftime('%Y', created_at) as year,
+            strftime('%m', created_at) as month,
+            strftime('%Y-%m', created_at) as year_month,
+            COUNT(*) as count
+        FROM articles 
+        GROUP BY year_month
+        ORDER BY year_month DESC
+    `;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('获取归档失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
+// GET /api/archive/:yearMonth - 获取指定月份的文章
+app.get('/api/archive/:yearMonth', (req, res) => {
+    const { yearMonth } = req.params;
+    
+    const sql = `
+        SELECT articles.*, users.username as author_name 
+        FROM articles 
+        LEFT JOIN users ON articles.user_id = users.id 
+        WHERE strftime('%Y-%m', articles.created_at) = ?
+        ORDER BY articles.created_at DESC
+    `;
+    
+    db.all(sql, [yearMonth], (err, rows) => {
+        if (err) {
+            console.error('获取归档文章失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
 // app.get('/', (req, res) => {
 //     res.send('服务器运行正常！');
 // });

@@ -249,12 +249,126 @@ async function loadPopularArticles() {
     }
 }
 
+// ================= 7. 归档功能 =================
+
+// 加载文章归档
+async function loadArchive() {
+    const archiveList = document.getElementById('archiveList');
+    
+    if (!archiveList) return;
+    
+    try {
+        const response = await fetch('/api/archive');
+        const archives = await response.json();
+        
+        if (archives.length === 0) {
+            archiveList.innerHTML = '<div class="empty">暂无文章</div>';
+            return;
+        }
+        
+        archiveList.innerHTML = archives.map(archive => {
+            // 格式化月份显示
+            const year = archive.year;
+            const month = archive.month;
+            const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            const displayMonth = `${year}年 ${monthNames[parseInt(month) - 1]}`;
+            
+            return `
+                <div class="archive-item" data-yearmonth="${archive.year_month}" onclick="loadArchiveArticles('${archive.year_month}')">
+                    <span class="archive-month">📅 ${displayMonth}</span>
+                    <span class="archive-count">${archive.count} 篇</span>
+                </div>
+            `;
+        }).join('');
+        
+        // 清除高亮
+        document.querySelectorAll('.archive-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+    } catch (error) {
+        console.error('加载归档失败:', error);
+        archiveList.innerHTML = '<div class="error">加载失败</div>';
+    }
+}
+
+// 按月份筛选文章
+async function loadArchiveArticles(yearMonth) {
+    const articlesList = document.getElementById('articlesList');
+    
+    try {
+        articlesList.innerHTML = '<div class="loading">📁 加载文章中...</div>';
+        
+        const response = await fetch(`/api/archive/${yearMonth}`);
+        const articles = await response.json();
+        
+        if (articles.length === 0) {
+            articlesList.innerHTML = '<div class="empty">📭 该月份暂无文章</div>';
+            return;
+        }
+        
+        // 渲染文章列表
+        articlesList.innerHTML = articles.map(article => `
+            <div class="article-card" onclick="viewArticle(${article.id})">
+                <h2 class="article-title">${escapeHtml(article.title)}</h2>
+                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+                <div class="article-meta">
+                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                    <span>📅 ${formatDate(article.created_at)}</span>
+                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // 高亮当前选中的归档项
+        document.querySelectorAll('.archive-item').forEach(item => {
+            if (item.dataset.yearmonth === yearMonth) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // 可选：在页面顶部显示当前筛选信息
+        const yearMonthStr = yearMonth.replace('-', '年 ') + '月';
+        if (!document.getElementById('filterInfo')) {
+            const filterInfo = document.createElement('div');
+            filterInfo.id = 'filterInfo';
+            filterInfo.className = 'filter-info';
+            articlesList.parentNode.insertBefore(filterInfo, articlesList);
+        }
+        document.getElementById('filterInfo').innerHTML = `
+            <div class="filter-banner">
+                📁 正在查看：${yearMonthStr} 的文章 
+                <button onclick="clearFilter()" class="clear-filter">✕ 清除筛选</button>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('加载归档文章失败:', error);
+        articlesList.innerHTML = '<div class="error">❌ 加载失败</div>';
+    }
+}
+
+// 清除筛选，显示全部文章
+function clearFilter() {
+    loadArticles();
+    document.querySelectorAll('.archive-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    const filterInfo = document.getElementById('filterInfo');
+    if (filterInfo) {
+        filterInfo.remove();
+    }
+}
+
 
 // 页面加载时执行初始化操作
 document.addEventListener('DOMContentLoaded', () => {
     loadArticles();
-    loadPopularArticles();  // 新增
+    loadPopularArticles();  
     loadTags();
+    loadArchive();  
     checkAuth();
     
     // 绑定搜索事件
