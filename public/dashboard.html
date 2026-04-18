@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据仪表盘 - 个人博客</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 数据仪表盘</h1>
+            <p>博客运营数据总览</p>
+            <div class="header-actions">
+                <div id="userInfo" class="user-info"></div>
+                <a href="/" class="back-btn">← 返回首页</a>
+            </div>
+        </header>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalArticles">-</div>
+                    <div class="stat-label">总文章数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👁️</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalViews">-</div>
+                    <div class="stat-label">总阅读量</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💬</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalComments">-</div>
+                    <div class="stat-label">总评论数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalUsers">-</div>
+                    <div class="stat-label">总用户数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✨</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="todayArticles">-</div>
+                    <div class="stat-label">今日新增</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 热门文章榜 -->
+        <div class="dashboard-section">
+            <h2>🔥 热门文章 TOP5</h2>
+            <div id="popularList" class="dashboard-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 近7天文章趋势 -->
+        <div class="dashboard-section">
+            <h2>📈 近7天文章趋势</h2>
+            <div id="trendChart" class="trend-chart">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/dashboard.js"></script>
+</body>
+</html>

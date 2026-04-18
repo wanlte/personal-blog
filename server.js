@@ -779,6 +779,97 @@ app.get('/rss.xml', (req, res) => {
 //     res.send('服务器运行正常！');
 // });
 
+// ==================== 统计 API ====================
+
+// GET /api/stats - 获取博客统计数据
+app.get('/api/stats', (req, res) => {
+    const stats = {};
+    
+    // 1. 总文章数
+    const sql1 = `SELECT COUNT(*) as total FROM articles`;
+    db.get(sql1, [], (err, row) => {
+        if (err) {
+            console.error('统计失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        stats.totalArticles = row.total;
+        
+        // 2. 总阅读量
+        const sql2 = `SELECT SUM(views) as total FROM articles`;
+        db.get(sql2, [], (err, row) => {
+            if (err) {
+                console.error('统计失败:', err.message);
+                res.status(500).json({ error: '服务器错误' });
+                return;
+            }
+            stats.totalViews = row.total || 0;
+            
+            // 3. 总评论数
+            const sql3 = `SELECT COUNT(*) as total FROM comments`;
+            db.get(sql3, [], (err, row) => {
+                if (err) {
+                    console.error('统计失败:', err.message);
+                    res.status(500).json({ error: '服务器错误' });
+                    return;
+                }
+                stats.totalComments = row.total || 0;
+                
+                // 4. 总用户数
+                const sql4 = `SELECT COUNT(*) as total FROM users`;
+                db.get(sql4, [], (err, row) => {
+                    if (err) {
+                        console.error('统计失败:', err.message);
+                        res.status(500).json({ error: '服务器错误' });
+                        return;
+                    }
+                    stats.totalUsers = row.total || 0;
+                    
+                    // 5. 今日新增文章
+                    const sql5 = `SELECT COUNT(*) as total FROM articles WHERE date(created_at) = date('now')`;
+                    db.get(sql5, [], (err, row) => {
+                        if (err) {
+                            console.error('统计失败:', err.message);
+                            res.status(500).json({ error: '服务器错误' });
+                            return;
+                        }
+                        stats.todayArticles = row.total || 0;
+                        
+                        // 6. 热门文章 TOP5
+                        const sql6 = `SELECT id, title, views FROM articles ORDER BY views DESC LIMIT 5`;
+                        db.all(sql6, [], (err, rows) => {
+                            if (err) {
+                                console.error('统计失败:', err.message);
+                                res.status(500).json({ error: '服务器错误' });
+                                return;
+                            }
+                            stats.popularArticles = rows || [];
+                            
+                            // 7. 最近7天文章趋势
+                            const sql7 = `
+                                SELECT date(created_at) as date, COUNT(*) as count 
+                                FROM articles 
+                                WHERE created_at >= date('now', '-7 days')
+                                GROUP BY date(created_at)
+                                ORDER BY date ASC
+                            `;
+                            db.all(sql7, [], (err, rows) => {
+                                if (err) {
+                                    console.error('统计失败:', err.message);
+                                    res.status(500).json({ error: '服务器错误' });
+                                    return;
+                                }
+                                stats.trend = rows || [];
+                                res.json(stats);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);
 });
