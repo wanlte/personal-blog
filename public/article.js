@@ -41,8 +41,8 @@ async function loadArticle() {
                     <span>✏️ 更新于 ${formatDate(article.updated_at)}</span>
                     <span>👁️ ${article.views} 次阅读</span>
                 </div>
-                <div class="detail-content">
-                    ${escapeHtml(article.content || '暂无内容').replace(/\n/g, '<br>')}
+                <div class="detail-content markdown-body">
+                    ${marked.parse(article.content || '暂无内容')}
                 </div>
                 <div class="article-tags" id="articleTags"></div>
                 <div class="article-actions" id="articleActions">

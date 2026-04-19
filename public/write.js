@@ -2,11 +2,37 @@ const submitBtn = document.getElementById('submitBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const messageDiv = document.getElementById('message');
 
+// 初始化 Markdown 编辑器
+let easyMDE = null;
+
+// 等待 DOM 加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('content')) {
+        easyMDE = new EasyMDE({
+            element: document.getElementById('content'),
+            spellChecker: false,
+            placeholder: '使用 Markdown 格式书写...',
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'quote', 'code', 'unordered-list', 'ordered-list', '|',
+                'link', 'image', 'table', '|',
+                'preview', 'side-by-side', 'fullscreen', '|',
+                'guide'
+            ],
+            previewRender: function(plainText) {
+                // 可以在这里自定义预览渲染
+                return plainText;
+            }
+        });
+    }
+});
+
 // 发布文章
 async function publishArticle() {
     const title = document.getElementById('title').value.trim();
     const summary = document.getElementById('summary').value.trim();
-    const content = document.getElementById('content').value.trim();
+    // 从 EasyMDE 获取内容
+    const content = easyMDE ? easyMDE.value() : document.getElementById('content').value.trim();
     const tagsInput = document.getElementById('tags').value.trim();
     
     if (!title) {
