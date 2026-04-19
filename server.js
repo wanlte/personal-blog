@@ -1045,6 +1045,47 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
 // 提供静态文件访问（图片）
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ==================== 网站地图 API====================
+
+// GET /sitemap.xml - 生成网站地图
+app.get('/sitemap.xml', (req, res) => {
+    const baseUrl = 'http://localhost:3000';
+    
+    // 获取所有已发布的文章
+    db.all('SELECT id, updated_at FROM articles WHERE status = "published" ORDER BY id DESC', [], (err, articles) => {
+        if (err) {
+            console.error('生成sitemap失败:', err.message);
+            res.status(500).send('服务器错误');
+            return;
+        }
+        
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        
+        // 添加首页
+        xml += `  <url>\n`;
+        xml += `    <loc>${baseUrl}/</loc>\n`;
+        xml += `    <changefreq>daily</changefreq>\n`;
+        xml += `    <priority>1.0</priority>\n`;
+        xml += `  </url>\n`;
+        
+        // 添加文章页
+        articles.forEach(article => {
+            const date = new Date(article.updated_at).toISOString().split('T')[0];
+            xml += `  <url>\n`;
+            xml += `    <loc>${baseUrl}/article.html?id=${article.id}</loc>\n`;
+            xml += `    <lastmod>${date}</lastmod>\n`;
+            xml += `    <changefreq>monthly</changefreq>\n`;
+            xml += `    <priority>0.8</priority>\n`;
+            xml += `  </url>\n`;
+        });
+        
+        xml += '</urlset>';
+        
+        res.setHeader('Content-Type', 'application/xml');
+        res.send(xml);
+    });
+});
 
 
 
