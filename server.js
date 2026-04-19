@@ -3,18 +3,19 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const app = express();
 const PORT = 3000;
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
 const dbPath = path.join(__dirname, 'db', 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
-
+const apicache = require('apicache');
+const cache = apicache.middleware;     
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // JWT 密钥
 const JWT_SECRET = 'your-secret-key-2024';
 
+const compression = require('compression');
+app.use(compression()); // 放在所有路由之前
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== 草稿箱 API ====================
 
@@ -233,8 +234,8 @@ function authenticateToken(req, res, next) {
 
 
 
-// 获取所有已发布的文章
-app.get('/api/articles', (req, res) => {
+// 获取所有已发布的文章列表
+app.get('/api/articles',  cache('5 minutes'),(req, res) => {
     const tagName = req.query.tag;
     
     let sql;
@@ -443,7 +444,7 @@ app.post('/api/tags', authenticateToken, (req, res) => {
 });
 
 // GET /api/tags - 获取所有标签
-app.get('/api/tags', (req, res) => {
+app.get('/api/tags', cache('1 hour'),(req, res) => {
     const sql = `SELECT * FROM tags ORDER BY name ASC`;
     db.all(sql, [], (err, rows) => {
         if (err) {
@@ -1044,6 +1045,18 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
 
 // 提供静态文件访问（图片）
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 静态文件缓存（放在 app.use(express.static) 之前）
+app.use(express.static('public', {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 缓存7天
+    etag: true,
+    lastModified: true
+}));
+
+// 上传的图片缓存
+app.use('/uploads', express.static('uploads', {
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 图片缓存30天
+}));
 
 // ==================== 网站地图 API====================
 
