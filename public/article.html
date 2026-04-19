@@ -4,9 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文章详情 - 个人博客</title>
+    <meta property="og:title" content="文章标题" id="og-title">
+    <meta property="og:description" content="文章描述" id="og-description">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="" id="og-url">
+    <meta property="og:image" content="/default-og-image.png">
     <link rel="stylesheet" href="/style.css">
     <!-- 添加 marked.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="application/ld+json" id="json-ld">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "文章标题",
+        "datePublished": "发布日期",
+        "dateModified": "修改日期",
+        "author": {
+        "@type": "Person",
+        "name": "作者名"
+        }
+    }
+    </script>
 </head>
 <body>
     <div class="container">

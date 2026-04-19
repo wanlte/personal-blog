@@ -30,7 +30,29 @@ async function loadArticle() {
         }
         
         const article = await response.json();
+
+        // 设置页面标题
+        document.title = `${article.title} - 个人博客`;
+
+        // 添加 meta description（如果没有则创建）
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+            metaDesc = document.createElement('meta');
+            metaDesc.name = 'description';
+            document.head.appendChild(metaDesc);
+        }
+        metaDesc.content = article.summary || article.content?.substring(0, 150) || '文章详情';
         
+        // 设置 Open Graph 标签
+        let ogTitle = document.getElementById('og-title');
+        if (ogTitle) ogTitle.setAttribute('content', article.title);
+
+        let ogDesc = document.getElementById('og-description');
+        if (ogDesc) ogDesc.setAttribute('content', article.summary || (article.content ? article.content.substring(0, 150) : ''));
+
+        let ogUrl = document.getElementById('og-url');
+        if (ogUrl) ogUrl.setAttribute('content', window.location.href);
+
         // 渲染文章详情
         articleDetail.innerHTML = `
             <div class="article-detail">
@@ -189,6 +211,7 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
 
 // 页面加载时执行
 loadArticle();
