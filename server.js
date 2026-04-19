@@ -15,6 +15,101 @@ const jwt = require('jsonwebtoken');
 // JWT 密钥
 const JWT_SECRET = 'your-secret-key-2024';
 
+
+// ==================== 草稿箱 API ====================
+
+// POST /api/articles/draft - 保存草稿
+app.post('/api/articles/draft', authenticateToken, (req, res) => {
+    const { title, content, summary, tags } = req.body;
+    const userId = req.user.userId;
+    
+    const sql = `INSERT INTO articles (title, content, summary, user_id, status) 
+                 VALUES (?, ?, ?, ?, 'draft')`;
+    
+    db.run(sql, [title || '无标题', content || '', summary || '', userId], function(err) {
+        if (err) {
+            console.error('保存草稿失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        
+        const articleId = this.lastID;
+        
+        // 保存标签
+        if (tags) {
+            const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
+            for (const tagName of tagList) {
+                db.get(`SELECT id FROM tags WHERE name = ?`, [tagName], (err, tag) => {
+                    if (tag) {
+                        db.run(`INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)`, [articleId, tag.id]);
+                    } else {
+                        db.run(`INSERT INTO tags (name) VALUES (?)`, [tagName], function(err) {
+                            if (!err) {
+                                db.run(`INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)`, [articleId, this.lastID]);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        
+        res.json({ id: articleId, message: '草稿已保存' });
+    });
+});
+
+// GET /api/articles/drafts - 获取当前用户的草稿列表
+app.get('/api/articles/drafts', authenticateToken, (req, res) => {
+    const userId = req.user.userId;
+    
+    const sql = `
+        SELECT * FROM articles 
+        WHERE user_id = ? AND status = 'draft'
+        ORDER BY updated_at DESC
+    `;
+    
+    db.all(sql, [userId], (err, rows) => {
+        if (err) {
+            console.error('获取草稿失败:', err.message);
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
+// PUT /api/articles/:id/publish - 发布草稿
+app.put('/api/articles/:id/publish', authenticateToken, (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    // 验证文章属于当前用户
+    db.get(`SELECT user_id FROM articles WHERE id = ?`, [id], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: '服务器错误' });
+            return;
+        }
+        if (!row) {
+            res.status(404).json({ error: '文章不存在' });
+            return;
+        }
+        if (row.user_id !== userId) {
+            res.status(403).json({ error: '无权操作' });
+            return;
+        }
+        
+        const sql = `UPDATE articles SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        db.run(sql, [id], function(err) {
+            if (err) {
+                console.error('发布失败:', err.message);
+                res.status(500).json({ error: '服务器错误' });
+                return;
+            }
+            res.json({ message: '发布成功' });
+        });
+    });
+});
+
+
 // ==================== 用户认证 API ====================
 
 // POST /api/register - 用户注册
@@ -138,7 +233,7 @@ function authenticateToken(req, res, next) {
 
 
 
-// GET - 获取所有文章
+// 获取所有已发布的文章
 app.get('/api/articles', (req, res) => {
     const tagName = req.query.tag;
     
@@ -147,21 +242,22 @@ app.get('/api/articles', (req, res) => {
     
     if (tagName) {
         sql = `
-            SELECT articles.*, users.username as author_name 
-            FROM articles 
-            LEFT JOIN users ON articles.user_id = users.id 
-            LEFT JOIN article_tags ON articles.id = article_tags.article_id
-            LEFT JOIN tags ON article_tags.tag_id = tags.id
-            WHERE tags.name = ?
-            ORDER BY articles.is_pinned DESC, articles.created_at DESC
+            SELECT a.*, u.username as author_name 
+            FROM articles a
+            LEFT JOIN users u ON a.user_id = u.id 
+            LEFT JOIN article_tags at ON a.id = at.article_id
+            LEFT JOIN tags t ON at.tag_id = t.id
+            WHERE t.name = ? AND a.status = 'published'
+            ORDER BY a.is_pinned DESC, a.created_at DESC
         `;
         params = [tagName];
     } else {
         sql = `
-            SELECT articles.*, users.username as author_name 
-            FROM articles 
-            LEFT JOIN users ON articles.user_id = users.id 
-            ORDER BY articles.is_pinned DESC, articles.created_at DESC
+            SELECT a.*, u.username as author_name 
+            FROM articles a
+            LEFT JOIN users u ON a.user_id = u.id 
+            WHERE a.status = 'published'
+            ORDER BY a.is_pinned DESC, a.created_at DESC
         `;
     }
     
@@ -219,7 +315,7 @@ app.post('/api/articles', authenticateToken, (req, res) => {
         return;
     }
     
-    const sql = `INSERT INTO articles (title, content, summary, user_id) VALUES (?, ?, ?, ?)`;
+const sql = `INSERT INTO articles (title, content, summary, user_id, status) VALUES (?, ?, ?, ?, 'published')`;
     
     db.run(sql, [title, content || '', summary || '', userId], function(err) {
         if (err) {
@@ -794,73 +890,84 @@ app.get('/api/stats', (req, res) => {
             return;
         }
         stats.totalArticles = row.total;
-        
-        // 2. 总阅读量
-        const sql2 = `SELECT SUM(views) as total FROM articles`;
-        db.get(sql2, [], (err, row) => {
+
+        // 2. 草稿数量
+        const sqlDraft = `SELECT COUNT(*) as total FROM articles WHERE status = 'draft'`;
+        db.get(sqlDraft, [], (err, row) => {
             if (err) {
                 console.error('统计失败:', err.message);
                 res.status(500).json({ error: '服务器错误' });
                 return;
             }
-            stats.totalViews = row.total || 0;
+            stats.draftCount = row.total || 0;
             
-            // 3. 总评论数
-            const sql3 = `SELECT COUNT(*) as total FROM comments`;
-            db.get(sql3, [], (err, row) => {
+            // 3. 总阅读量（放在草稿查询的回调里面）
+            const sql2 = `SELECT SUM(views) as total FROM articles`;
+            db.get(sql2, [], (err, row) => {
                 if (err) {
                     console.error('统计失败:', err.message);
                     res.status(500).json({ error: '服务器错误' });
                     return;
                 }
-                stats.totalComments = row.total || 0;
+                stats.totalViews = row.total || 0;
                 
-                // 4. 总用户数
-                const sql4 = `SELECT COUNT(*) as total FROM users`;
-                db.get(sql4, [], (err, row) => {
+                // 4. 总评论数
+                const sql3 = `SELECT COUNT(*) as total FROM comments`;
+                db.get(sql3, [], (err, row) => {
                     if (err) {
                         console.error('统计失败:', err.message);
                         res.status(500).json({ error: '服务器错误' });
                         return;
                     }
-                    stats.totalUsers = row.total || 0;
+                    stats.totalComments = row.total || 0;
                     
-                    // 5. 今日新增文章
-                    const sql5 = `SELECT COUNT(*) as total FROM articles WHERE date(created_at) = date('now')`;
-                    db.get(sql5, [], (err, row) => {
+                    // 5. 总用户数
+                    const sql4 = `SELECT COUNT(*) as total FROM users`;
+                    db.get(sql4, [], (err, row) => {
                         if (err) {
                             console.error('统计失败:', err.message);
                             res.status(500).json({ error: '服务器错误' });
                             return;
                         }
-                        stats.todayArticles = row.total || 0;
+                        stats.totalUsers = row.total || 0;
                         
-                        // 6. 热门文章 TOP5
-                        const sql6 = `SELECT id, title, views FROM articles ORDER BY views DESC LIMIT 5`;
-                        db.all(sql6, [], (err, rows) => {
+                        // 6. 今日新增文章
+                        const sql5 = `SELECT COUNT(*) as total FROM articles WHERE date(created_at) = date('now')`;
+                        db.get(sql5, [], (err, row) => {
                             if (err) {
                                 console.error('统计失败:', err.message);
                                 res.status(500).json({ error: '服务器错误' });
                                 return;
                             }
-                            stats.popularArticles = rows || [];
+                            stats.todayArticles = row.total || 0;
                             
-                            // 7. 最近7天文章趋势
-                            const sql7 = `
-                                SELECT date(created_at) as date, COUNT(*) as count 
-                                FROM articles 
-                                WHERE created_at >= date('now', '-7 days')
-                                GROUP BY date(created_at)
-                                ORDER BY date ASC
-                            `;
-                            db.all(sql7, [], (err, rows) => {
+                            // 7. 热门文章 TOP5
+                            const sql6 = `SELECT id, title, views FROM articles WHERE status = 'published' ORDER BY views DESC LIMIT 5`;
+                            db.all(sql6, [], (err, rows) => {
                                 if (err) {
                                     console.error('统计失败:', err.message);
                                     res.status(500).json({ error: '服务器错误' });
                                     return;
                                 }
-                                stats.trend = rows || [];
-                                res.json(stats);
+                                stats.popularArticles = rows || [];
+                                
+                                // 8. 最近7天文章趋势
+                                const sql7 = `
+                                    SELECT date(created_at) as date, COUNT(*) as count 
+                                    FROM articles 
+                                    WHERE created_at >= date('now', '-7 days') AND status = 'published'
+                                    GROUP BY date(created_at)
+                                    ORDER BY date ASC
+                                `;
+                                db.all(sql7, [], (err, rows) => {
+                                    if (err) {
+                                        console.error('统计失败:', err.message);
+                                        res.status(500).json({ error: '服务器错误' });
+                                        return;
+                                    }
+                                    stats.trend = rows || [];
+                                    res.json(stats);
+                                });
                             });
                         });
                     });
@@ -869,6 +976,77 @@ app.get('/api/stats', (req, res) => {
         });
     });
 });
+
+// ==================== 图片上传 API ====================
+
+const multer = require('multer');
+const fs = require('fs');
+
+// 确保 uploads 目录存在
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+// 配置 multer 存储
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        // 生成唯一文件名：时间戳 + 随机数 + 原扩展名
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, uniqueSuffix + ext);
+    }
+});
+
+// 文件过滤器（只允许图片）
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+        cb(null, true);
+    } else {
+        cb(new Error('只允许上传图片文件'));
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB 限制
+    fileFilter: fileFilter
+});
+
+// POST /api/upload - 上传图片
+app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        res.status(400).json({ error: '请选择图片文件' });
+        return;
+    }
+    
+    // 返回图片访问 URL
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({
+        success: true,
+        url: imageUrl,
+        message: '上传成功'
+    });
+}, (error, req, res, next) => {
+    if (error.message === '只允许上传图片文件') {
+        res.status(400).json({ error: error.message });
+    } else {
+        res.status(500).json({ error: '上传失败' });
+    }
+});
+
+// 提供静态文件访问（图片）
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
+
 
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);

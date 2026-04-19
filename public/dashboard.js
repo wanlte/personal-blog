@@ -24,7 +24,8 @@ async function loadStats() {
         document.getElementById('totalComments').textContent = stats.totalComments || 0;
         document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
         document.getElementById('todayArticles').textContent = stats.todayArticles || 0;
-        
+        document.getElementById('draftCount').textContent = stats.draftCount || 0;
+
         // 渲染热门文章
         const popularList = document.getElementById('popularList');
         if (stats.popularArticles && stats.popularArticles.length > 0) {
@@ -86,10 +87,12 @@ function renderTrendChart(trend) {
     `;
 }
 
+// 查看文章详情
 function viewArticle(id) {
     window.location.href = `/article.html?id=${id}`;
 }
 
+// 转义HTML特殊字符
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -97,6 +100,76 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// 加载草稿列表
+async function loadDrafts() {
+    const draftList = document.getElementById('draftList');
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/articles/drafts', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const drafts = await response.json();
+        
+        if (drafts.length === 0) {
+            draftList.innerHTML = '<div class="empty">暂无草稿</div>';
+            return;
+        }
+        
+        draftList.innerHTML = drafts.map(draft => `
+            <div class="dashboard-item">
+                <div class="item-title">${escapeHtml(draft.title || '无标题')}</div>
+                <div class="item-date">📅 ${formatDate(draft.updated_at)}</div>
+                <div class="item-actions">
+                    <button onclick="editArticle(${draft.id})" class="btn-small">编辑</button>
+                    <button onclick="publishDraft(${draft.id})" class="btn-small btn-publish">发布</button>
+                    <button onclick="deleteDraft(${draft.id})" class="btn-small btn-delete">删除</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('加载草稿失败:', error);
+        draftList.innerHTML = '<div class="error">加载失败</div>';
+    }
+}
+
+// 发布草稿
+async function publishDraft(id) {
+    if (!confirm('确定要发布这篇草稿吗？')) return;
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/articles/${id}/publish`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+        loadDrafts();
+        loadStats();
+    } else {
+        alert('发布失败');
+    }
+}
+
+// 删除草稿
+async function deleteDraft(id) {
+    if (!confirm('确定要删除这篇草稿吗？')) return;
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/articles/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+        loadDrafts();
+        loadStats();
+    } else {
+        alert('删除失败');
+    }
+}
+
 // 页面加载
 checkAuth();
 loadStats();
+loadDrafts();
