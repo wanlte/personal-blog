@@ -4,10 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild public/app.js public/comments.js --bundle --outfile=public/bundle.js --minify --allow-overwrite",
-    "start": "node server.js",
-    "build:css": "cat public/style.css > public/combined.css"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
