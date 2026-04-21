@@ -33,7 +33,9 @@ db.serialize(() => {
             summary TEXT,
             user_id INTEGER, 
             views INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TI1MESTAMP,
+            status TEXT DEFAULT 'published',
+            is_pinned INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )

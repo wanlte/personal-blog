@@ -100,15 +100,34 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// 格式化日期
+function formatDate(dateStr) {
+    if (!dateStr) return '未知时间';
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 // 加载草稿列表
 async function loadDrafts() {
     const draftList = document.getElementById('draftList');
     
     try {
         const token = localStorage.getItem('token');
+        if (!token) {
+            draftList.innerHTML = '<div class="error">请先登录</div>';
+            return;
+        }
+        
         const response = await fetch('/api/articles/drafts', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            draftList.innerHTML = `<div class="error">${error.error || '加载失败'}</div>`;
+            return;
+        }
+        
         const drafts = await response.json();
         
         if (drafts.length === 0) {
@@ -129,7 +148,7 @@ async function loadDrafts() {
         `).join('');
     } catch (error) {
         console.error('加载草稿失败:', error);
-        draftList.innerHTML = '<div class="error">加载失败</div>';
+        draftList.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
     }
 }
 
