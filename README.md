@@ -40,43 +40,7 @@ Meta标签：动态标题、描述、开放图谱标签
 性能优化：骨架屏、懒加载、缓存、压缩
 
 
-三、项目目录框架
-
-personal-blog/
-├── server.js                 # 入口文件，所有API路由
-├── package.json              # 项目配置和依赖
-├── package-lock.json         # 依赖锁定
-├── .gitignore                # Git忽略文件
-├── .env                      # 环境变量（本地开发）
-│
-├── db/                       # 数据库
-│   ├── database.sqlite       # SQLite数据库文件
-│   └── init.js               # 数据库初始化脚本
-│
-├── public/                   # 前端静态文件
-│   ├── index.html            # 首页（文章列表）
-│   ├── article.html          # 文章详情页
-│   ├── write.html            # 写文章页
-│   ├── edit.html             # 编辑文章页
-│   ├── login.html            # 登录注册页
-│   ├── dashboard.html        # 数据仪表盘
-│   ├── style.css             # 全局样式
-│   ├── app.js                # 首页逻辑
-│   ├── article.js            # 文章详情逻辑
-│   ├── write.js              # 写文章逻辑
-│   ├── edit.js               # 编辑文章逻辑
-│   ├── auth.js               # 登录注册逻辑
-│   ├── dashboard.js          # 仪表盘逻辑
-│   ├── comments.js           # 评论功能逻辑
-│   └── uploads/              # 上传的图片（运行时生成）
-│
-├── utils/                    # 工具函数
-│   └── email.js              # 邮件通知配置
-│
-└── middleware/               # 中间件（当前在server.js中）
-
-
-四、API接口清单
+三、API接口清单
 
 POST /api/register 用户注册 不需要认证
 
@@ -127,7 +91,7 @@ GET /rss.xml RSS订阅 不需要认证
 GET /sitemap.xml 网站地图 不需要认证
 
 
-五、技术栈详情
+四、技术栈详情
 
 前端层面：HTML5语义化标签、CSS3 Flex和Grid布局及响应式动画、原生JavaScript ES6加语法、EasyMDE Markdown编辑器、marked.js Markdown解析
 
@@ -136,26 +100,8 @@ GET /sitemap.xml 网站地图 不需要认证
 部署层面：Cyclic公网部署
 
 
-六、简历描述
 
-项目名称：个人博客系统（全栈项目）
-
-技术栈：Node.js + Express + SQLite + 原生 JavaScript + HTML5/CSS3
-
-项目描述：开发了一个功能完整的全栈博客系统，支持文章管理、用户认证、评论互动、标签分类、搜索归档、数据统计等核心功能。
-
-核心亮点：
-实现JWT用户认证和RBAC权限控制，支持文章置顶和草稿箱
-集成EasyMDE富文本编辑器，支持Markdown和图片上传
-实现全文搜索、热门排行榜、文章归档、RSS订阅
-开发数据仪表盘，展示文章趋势、阅读量统计
-优化SEO，包含网站地图、meta标签、开放图谱标签
-部署至Cyclic平台，实现公网访问
-
-项目地址：https://github.com/wanlte/personal-blog
-
-
-七、本地运行步骤
+五、本地运行步骤
 
 克隆项目：git clone https://github.com/wanlte/personal-blog.git 然后 cd personal-blog
 
@@ -170,7 +116,7 @@ GET /sitemap.xml 网站地图 不需要认证
 访问：浏览器打开 http://localhost:3000
 
 
-八、部署到Cyclic步骤
+六、部署到Cyclic步骤
 
 访问 https://cyclic.sh
 用GitHub登录
