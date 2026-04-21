@@ -1,5 +1,0 @@
-[phases.setup]
-nixPkgs = ["libatomic", "sqlite"]
-
-[phases.install]
-cmds = ["npm install sqlite3 --build-from-source"]

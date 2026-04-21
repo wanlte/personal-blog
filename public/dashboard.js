@@ -92,6 +92,11 @@ function viewArticle(id) {
     window.location.href = `/article.html?id=${id}`;
 }
 
+// 编辑草稿
+function editArticle(id) {
+    window.location.href = `/write.html?id=${id}`;
+}
+
 // 转义HTML特殊字符
 function escapeHtml(text) {
     if (!text) return '';
