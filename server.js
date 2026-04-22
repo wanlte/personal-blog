@@ -1097,9 +1097,6 @@ app.get('/sitemap.xml', (req, res) => {
     });
 });
 
-// app.get('/', (req, res) => {
-//     res.send('服务器运行正常！');
-// });
 
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);

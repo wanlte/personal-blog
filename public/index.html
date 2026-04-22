@@ -9,104 +9,119 @@
     <meta name="author" content="wanlte">
     <link rel="canonical" href="http://localhost:3000/">
     <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📝 个人博客</h1>
-            <p>记录学习与成长</p>
-            <div class="header-actions">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="搜索文章..." class="search-input">
-                    <button id="searchBtn" class="search-btn">🔍</button>
-                </div>
-                <div id="userInfo" class="user-info"></div>
-                <a href="/dashboard.html" class="dashboard-btn">📊 数据</a>
-                <a href="/rss.xml" class="rss-btn" target="_blank">📡 RSS</a>
-                <a href="/write.html" class="write-btn">✍️ 写文章</a>
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-logo">Blog.</a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/#articles">文章</a></li>
+            <li><a href="/archive.html">归档</a></li>
+            <li><a href="/about.html">关于</a></li>
+        </ul>
+        <div class="nav-actions">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜索文章..." class="search-input">
+                <button id="searchBtn" class="search-btn">🔍</button>
             </div>
-        </header>
-
-        <div class="blog-layout">
-            <!-- 主内容区 -->
-            <main class="main-content">
-                <div class="articles-list" id="articlesList">
-                    <!-- 骨架屏 -->
-                    <div class="skeleton-card">
-                        <div class="skeleton skeleton-title"></div>
-                        <div class="skeleton skeleton-text"></div>
-                        <div class="skeleton skeleton-text" style="width: 60%;"></div>
-                        <div class="skeleton-meta">
-                            <div class="skeleton skeleton-meta-item"></div>
-                            <div class="skeleton skeleton-meta-item"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-card">
-                        <div class="skeleton skeleton-title"></div>
-                        <div class="skeleton skeleton-text"></div>
-                        <div class="skeleton skeleton-text" style="width: 60%;"></div>
-                        <div class="skeleton-meta">
-                            <div class="skeleton skeleton-meta-item"></div>
-                            <div class="skeleton skeleton-meta-item"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-card">
-                        <div class="skeleton skeleton-title"></div>
-                        <div class="skeleton skeleton-text"></div>
-                        <div class="skeleton skeleton-text" style="width: 60%;"></div>
-                        <div class="skeleton-meta">
-                            <div class="skeleton skeleton-meta-item"></div>
-                            <div class="skeleton skeleton-meta-item"></div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-            
-            <!-- 侧边栏 -->
-            <aside class="sidebar">
-                
-                <!-- 文章归档 -->
-                <div class="sidebar-section">
-                    <h3>📁 文章归档</h3>
-                    <div id="archiveList" class="archive-list">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-
-                <!-- 热门文章排行榜 -->
-                <div class="sidebar-section">
-                    <h3>🔥 热门文章</h3>
-                    <div id="popularList" class="popular-list">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-                
-                <!-- 标签云 -->
-                <div class="sidebar-section">
-                    <h3>🏷️ 标签云</h3>
-                    <div id="tagList" class="tag-cloud"></div>
-                </div>
-
-                <!-- RSS 订阅提示 -->
-                <div class="sidebar-section">
-                    <h3>📡 订阅博客</h3>
-                    <div class="rss-tip">
-                        <p>通过 RSS 阅读器订阅：</p>
-                        <a href="/rss.xml" class="rss-link" target="_blank">
-                            <code>http://localhost:3000/rss.xml</code>
-                        </a>
-                        <p class="rss-note">支持 Feedly、Inoreader 等阅读器</p>
-                    </div>
-                </div>
-            </aside>
+            <div id="userInfo"></div>
+            <a href="/dashboard.html" class="btn btn-ghost">📊 数据</a>
+            <a href="/rss.xml" class="btn btn-ghost" target="_blank">📡 RSS</a>
+            <a href="/write.html" class="btn btn-primary">✍️ 写文章</a>
         </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">记录学习与成长</div>
+        <h1>探索<span>无限</span>的创意世界</h1>
+        <p>分享技术见解，记录成长历程。这里有深度思考，也有实用技巧。</p>
+        <div class="hero-actions">
+            <a href="#articles" class="btn btn-primary">浏览文章</a>
+            <a href="/write.html" class="btn btn-ghost">开始写作</a>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="blog-layout" id="articles">
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="section-header">
+                <h2 class="section-title">最新文章</h2>
+            </div>
+            <div class="articles-list" id="articlesList">
+                <!-- Skeleton Loading -->
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Archive -->
+            <div class="sidebar-section">
+                <h3>📁 文章归档</h3>
+                <div id="archiveList" class="archive-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- Popular -->
+            <div class="sidebar-section">
+                <h3>🔥 热门文章</h3>
+                <div id="popularList" class="popular-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="sidebar-section">
+                <h3>🏷️ 标签云</h3>
+                <div id="tagList" class="tag-cloud"></div>
+            </div>
+
+            <!-- RSS -->
+            <div class="sidebar-section">
+                <h3>📡 RSS 订阅</h3>
+                <a href="/rss.xml" class="rss-link" target="_blank">http://localhost:3000/rss.xml</a>
+            </div>
+        </aside>
     </div>
 
-    <footer class="footer">
-        <p>© 2024 个人博客 | 由 Node.js + Express 驱动</p>
-        <p>
+    <!-- Footer -->
+    <footer>
+        <p>© 2024-2026 个人博客 | 由 Node.js + Express 驱动</p>
+        <p style="margin-top: 8px;">
             <a href="/rss.xml">📡 RSS 订阅</a> | 
-            <a href="https://github.com/你的用户名/personal-blog" target="_blank">GitHub</a>
+            <a href="https://github.com/wanlte/personal-blog" target="_blank">GitHub</a>
         </p>
     </footer>
 
