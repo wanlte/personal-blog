@@ -8,6 +8,10 @@ const apicache = require('apicache');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// 连接 Redis
+const cache = require('./utils/cache');
+cache.connect();
+
 const app = express();
 const PORT = 3000;
 
@@ -54,5 +58,6 @@ app.listen(PORT, () => {
 // 优雅关闭
 process.on('SIGINT', async () => {
     await prisma.$disconnect();
+    await cache.close();
     process.exit(0);
 });

@@ -1,5 +1,6 @@
 // controllers/articlesController.js - 文章控制器
 const prisma = require('../db/index');
+const { clearArticleCache } = require('../middleware/cache');
 
 // 获取所有已发布的文章列表
 async function getArticles(req, res) {
@@ -152,6 +153,9 @@ async function updateArticle(req, res) {
             }
         });
         
+        // 清除文章相关缓存
+        await clearArticleCache(parseInt(id));
+        
         res.json({ message: '文章更新成功', id: parseInt(id) });
     } catch (error) {
         console.error('更新失败:', error.message);
@@ -182,6 +186,9 @@ async function deleteArticle(req, res) {
         await prisma.article.delete({
             where: { id: parseInt(id) }
         });
+        
+        // 清除文章相关缓存
+        await clearArticleCache(parseInt(id));
         
         res.json({ message: '文章删除成功', id: parseInt(id) });
     } catch (error) {
@@ -215,6 +222,9 @@ async function pinArticle(req, res) {
             where: { id: parseInt(id) },
             data: { isPinned: newPinStatus }
         });
+        
+        // 清除文章相关缓存
+        await clearArticleCache(parseInt(id));
         
         res.json({ 
             message: newPinStatus === 1 ? '文章已置顶' : '已取消置顶',

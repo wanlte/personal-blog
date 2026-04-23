@@ -1,9 +1,8 @@
 // routes/articles.js - 文章路由
 const express = require('express');
 const router = express.Router();
-const apicache = require('apicache');
-const cache = apicache.middleware;
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware, CACHE_KEYS, CACHE_TTL } = require('../middleware/cache');
 const {
     getArticles,
     getArticle,
@@ -17,13 +16,13 @@ const {
 } = require('../controllers/articlesController');
 
 // GET /api/articles - 获取所有已发布的文章列表 (带缓存)
-router.get('/', cache('5 minutes'), getArticles);
+router.get('/', cacheMiddleware(CACHE_KEYS.ARTICLES_LIST, CACHE_TTL.ARTICLES_LIST), getArticles);
 
 // POST /api/articles - 创建新文章
 router.post('/', authenticateToken, createArticle);
 
-// GET /api/articles/:id - 获取单篇文章
-router.get('/:id', getArticle);
+// GET /api/articles/:id - 获取单篇文章 (带缓存)
+router.get('/:id', cacheMiddleware(CACHE_KEYS.ARTICLE_DETAIL, CACHE_TTL.ARTICLE_DETAIL), getArticle);
 
 // PUT /api/articles/:id - 更新文章
 router.put('/:id', authenticateToken, updateArticle);

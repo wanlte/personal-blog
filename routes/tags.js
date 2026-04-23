@@ -1,13 +1,12 @@
 // routes/tags.js - 标签路由
 const express = require('express');
 const router = express.Router();
-const apicache = require('apicache');
-const cache = apicache.middleware;
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware, CACHE_KEYS, CACHE_TTL } = require('../middleware/cache');
 const { getTags, createTag, addTagToArticle, getArticleTags, deleteArticleTag } = require('../controllers/tagsController');
 
 // GET /api/tags - 获取所有标签 (带缓存)
-router.get('/', cache('1 hour'), getTags);
+router.get('/', cacheMiddleware(CACHE_KEYS.TAGS_LIST, CACHE_TTL.TAGS_LIST), getTags);
 
 // POST /api/tags - 创建标签
 router.post('/', authenticateToken, createTag);
