@@ -1,8 +1,8 @@
 // controllers/statsController.js - 统计控制器
-const db = require('../db/db');
+const prisma = require('../db/index');
 
 // 搜索文章
-function search(req, res) {
+async function search(req, res) {
     const keyword = req.query.q;
     
     if (!keyword || keyword.trim() === '') {
@@ -10,192 +10,183 @@ function search(req, res) {
         return;
     }
     
-    const searchTerm = `%${keyword.trim()}%`;
-    const sql = `
-        SELECT articles.*, users.username as author_name 
-        FROM articles 
-        LEFT JOIN users ON articles.user_id = users.id 
-        WHERE articles.title LIKE ? OR articles.content LIKE ? OR articles.summary LIKE ?
-        ORDER BY articles.is_pinned DESC, articles.created_at DESC
-    `;
-    
-    db.all(sql, [searchTerm, searchTerm, searchTerm], (err, rows) => {
-        if (err) {
-            console.error('搜索失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+    try {
+        const articles = await prisma.article.findMany({
+            where: {
+                OR: [
+                    { title: { contains: keyword, mode: 'insensitive' } },
+                    { content: { contains: keyword, mode: 'insensitive' } },
+                    { summary: { contains: keyword, mode: 'insensitive' } }
+                ]
+            },
+            include: {
+                user: { select: { username: true } }
+            },
+            orderBy: [
+                { isPinned: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+        res.json(articles);
+    } catch (error) {
+        console.error('搜索失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取热门文章
-function getPopular(req, res) {
+async function getPopular(req, res) {
     const limit = parseInt(req.query.limit) || 5;
     
-    const sql = `
-        SELECT articles.id, articles.title, articles.summary, articles.views, 
-               articles.created_at, users.username as author_name
-        FROM articles 
-        LEFT JOIN users ON articles.user_id = users.id 
-        WHERE articles.views > 0
-        ORDER BY articles.views DESC
-        LIMIT ?
-    `;
-    
-    db.all(sql, [limit], (err, rows) => {
-        if (err) {
-            console.error('获取排行榜失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+    try {
+        const articles = await prisma.article.findMany({
+            where: { views: { gt: 0 } },
+            select: {
+                id: true,
+                title: true,
+                summary: true,
+                views: true,
+                createdAt: true,
+                user: { select: { username: true } }
+            },
+            orderBy: { views: 'desc' },
+            take: limit
+        });
+        
+        const result = articles.map(a => ({
+            ...a,
+            author_name: a.user?.username
+        }));
+        
+        res.json(result);
+    } catch (error) {
+        console.error('获取排行榜失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取文章归档
-function getArchive(req, res) {
-    const sql = `
-        SELECT 
-            strftime('%Y', created_at) as year,
-            strftime('%m', created_at) as month,
-            strftime('%Y-%m', created_at) as year_month,
-            COUNT(*) as count
-        FROM articles 
-        GROUP BY year_month
-        ORDER BY year_month DESC
-    `;
-    
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            console.error('获取归档失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+async function getArchive(req, res) {
+    try {
+        const articles = await prisma.article.groupBy({
+            by: ['createdAt'],
+            _count: { id: true }
+        });
+        
+        // 按年月分组
+        const archiveMap = new Map();
+        articles.forEach(a => {
+            const date = new Date(a.createdAt);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const key = `${year}-${month}`;
+            
+            if (archiveMap.has(key)) {
+                archiveMap.get(key).count += a._count.id;
+            } else {
+                archiveMap.set(key, {
+                    year: String(year),
+                    month,
+                    year_month: key,
+                    count: a._count.id
+                });
+            }
+        });
+        
+        const archive = Array.from(archiveMap.values())
+            .sort((a, b) => b.year_month.localeCompare(a.year_month));
+        
+        res.json(archive);
+    } catch (error) {
+        console.error('获取归档失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取指定月份的文章
-function getArchiveByMonth(req, res) {
+async function getArchiveByMonth(req, res) {
     const { yearMonth } = req.params;
     
-    const sql = `
-        SELECT articles.*, users.username as author_name 
-        FROM articles 
-        LEFT JOIN users ON articles.user_id = users.id 
-        WHERE strftime('%Y-%m', articles.created_at) = ?
-        ORDER BY articles.created_at DESC
-    `;
-    
-    db.all(sql, [yearMonth], (err, rows) => {
-        if (err) {
-            console.error('获取归档文章失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+    try {
+        const [year, month] = yearMonth.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0);
+        
+        const articles = await prisma.article.findMany({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
+            include: {
+                user: { select: { username: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        
+        res.json(articles);
+    } catch (error) {
+        console.error('获取归档文章失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取博客统计数据
-function getStats(req, res) {
-    const stats = {};
-    
-    // 1. 总文章数
-    const sql1 = `SELECT COUNT(*) as total FROM articles`;
-    db.get(sql1, [], (err, row) => {
-        if (err) {
-            console.error('统计失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        stats.totalArticles = row.total;
-
-        // 2. 草稿数量
-        const sqlDraft = `SELECT COUNT(*) as total FROM articles WHERE status = 'draft'`;
-        db.get(sqlDraft, [], (err, row) => {
-            if (err) {
-                console.error('统计失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            stats.draftCount = row.total || 0;
-            
-            // 3. 总阅读量
-            const sql2 = `SELECT SUM(views) as total FROM articles`;
-            db.get(sql2, [], (err, row) => {
-                if (err) {
-                    console.error('统计失败:', err.message);
-                    res.status(500).json({ error: '服务器错误' });
-                    return;
-                }
-                stats.totalViews = row.total || 0;
-                
-                // 4. 总评论数
-                const sql3 = `SELECT COUNT(*) as total FROM comments`;
-                db.get(sql3, [], (err, row) => {
-                    if (err) {
-                        console.error('统计失败:', err.message);
-                        res.status(500).json({ error: '服务器错误' });
-                        return;
+async function getStats(req, res) {
+    try {
+        const [
+            totalArticles,
+            draftCount,
+            totalViews,
+            totalComments,
+            totalUsers,
+            todayArticles,
+            popularArticles,
+            trendData
+        ] = await Promise.all([
+            prisma.article.count(),
+            prisma.article.count({ where: { status: 'draft' } }),
+            prisma.article.aggregate({ _sum: { views: true } }),
+            prisma.comment.count(),
+            prisma.user.count(),
+            prisma.article.count({
+                where: {
+                    createdAt: {
+                        gte: new Date(new Date().setHours(0, 0, 0, 0))
                     }
-                    stats.totalComments = row.total || 0;
-                    
-                    // 5. 总用户数
-                    const sql4 = `SELECT COUNT(*) as total FROM users`;
-                    db.get(sql4, [], (err, row) => {
-                        if (err) {
-                            console.error('统计失败:', err.message);
-                            res.status(500).json({ error: '服务器错误' });
-                            return;
-                        }
-                        stats.totalUsers = row.total || 0;
-                        
-                        // 6. 今日新增文章
-                        const sql5 = `SELECT COUNT(*) as total FROM articles WHERE date(created_at) = date('now')`;
-                        db.get(sql5, [], (err, row) => {
-                            if (err) {
-                                console.error('统计失败:', err.message);
-                                res.status(500).json({ error: '服务器错误' });
-                                return;
-                            }
-                            stats.todayArticles = row.total || 0;
-                            
-                            // 7. 热门文章 TOP5
-                            const sql6 = `SELECT id, title, views FROM articles WHERE status = 'published' ORDER BY views DESC LIMIT 5`;
-                            db.all(sql6, [], (err, rows) => {
-                                if (err) {
-                                    console.error('统计失败:', err.message);
-                                    res.status(500).json({ error: '服务器错误' });
-                                    return;
-                                }
-                                stats.popularArticles = rows || [];
-                                
-                                // 8. 最近7天文章趋势
-                                const sql7 = `
-                                    SELECT date(created_at) as date, COUNT(*) as count 
-                                    FROM articles 
-                                    WHERE created_at >= date('now', '-7 days') AND status = 'published'
-                                    GROUP BY date(created_at)
-                                    ORDER BY date ASC
-                                `;
-                                db.all(sql7, [], (err, rows) => {
-                                    if (err) {
-                                        console.error('统计失败:', err.message);
-                                        res.status(500).json({ error: '服务器错误' });
-                                        return;
-                                    }
-                                    stats.trend = rows || [];
-                                    res.json(stats);
-                                });
-                            });
-                        });
-                    });
-                });
-            });
+                }
+            }),
+            prisma.article.findMany({
+                where: { status: 'published' },
+                select: { id: true, title: true, views: true },
+                orderBy: { views: 'desc' },
+                take: 5
+            }),
+            // 最近7天趋势
+            prisma.$queryRaw`
+                SELECT DATE(created_at) as date, COUNT(*) as count 
+                FROM articles 
+                WHERE created_at >= NOW() - INTERVAL '7 days' AND status = 'published'
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC
+            `
+        ]);
+        
+        res.json({
+            totalArticles,
+            draftCount: draftCount || 0,
+            totalViews: totalViews._sum.views || 0,
+            totalComments: totalComments || 0,
+            totalUsers: totalUsers || 0,
+            todayArticles: todayArticles || 0,
+            popularArticles: popularArticles || [],
+            trend: trendData || []
         });
-    });
+    } catch (error) {
+        console.error('统计失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 module.exports = {

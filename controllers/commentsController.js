@@ -1,10 +1,10 @@
 // controllers/commentsController.js - 评论控制器
-const db = require('../db/db');
 const jwt = require('jsonwebtoken');
+const prisma = require('../db/index');
 const { JWT_SECRET } = require('../middleware/auth');
 
 // 发表评论
-function createComment(req, res) {
+async function createComment(req, res) {
     const { id } = req.params;
     const { content, userName } = req.body;
     
@@ -13,13 +13,13 @@ function createComment(req, res) {
         return;
     }
     
-    // 检查文章是否存在
-    db.get(`SELECT id FROM articles WHERE id = ?`, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        if (!row) {
+    try {
+        // 检查文章是否存在
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) }
+        });
+        
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
@@ -31,82 +31,91 @@ function createComment(req, res) {
         
         if (token) {
             try {
-                const payload = jwt.decode(token);
-                userId = payload.userId;
-                finalUserName = payload.username;
+                const decoded = jwt.decode(token);
+                userId = decoded?.userId;
+                finalUserName = decoded?.username || finalUserName;
             } catch (e) {
                 console.error('解析token失败', e);
             }
         }
         
-        const sql = `INSERT INTO comments (content, article_id, user_id, user_name) VALUES (?, ?, ?, ?)`;
-        db.run(sql, [content.trim(), id, userId, finalUserName], function(err) {
-            if (err) {
-                console.error('发表评论失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            res.json({
-                id: this.lastID,
+        const comment = await prisma.comment.create({
+            data: {
                 content: content.trim(),
-                user_name: finalUserName,
-                created_at: new Date().toISOString()
-            });
+                articleId: parseInt(id),
+                userId,
+                userName: finalUserName
+            }
         });
-    });
+        
+        res.json({
+            id: comment.id,
+            content: comment.content,
+            user_name: comment.userName,
+            created_at: comment.createdAt
+        });
+    } catch (error) {
+        console.error('发表评论失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取文章评论
-function getComments(req, res) {
+async function getComments(req, res) {
     const { id } = req.params;
     
-    const sql = `
-        SELECT comments.*, users.username as user_avatar 
-        FROM comments 
-        LEFT JOIN users ON comments.user_id = users.id 
-        WHERE comments.article_id = ? 
-        ORDER BY comments.created_at ASC
-    `;
-    
-    db.all(sql, [id], (err, rows) => {
-        if (err) {
-            console.error('获取评论失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+    try {
+        const comments = await prisma.comment.findMany({
+            where: { articleId: parseInt(id) },
+            include: {
+                user: {
+                    select: { username: true }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        
+        const result = comments.map(c => ({
+            ...c,
+            user_avatar: c.user?.username
+        }));
+        
+        res.json(result);
+    } catch (error) {
+        console.error('获取评论失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 删除评论
-function deleteComment(req, res) {
+async function deleteComment(req, res) {
     const { id } = req.params;
     const userId = req.user.userId;
     
-    const checkSql = `SELECT user_id FROM comments WHERE id = ?`;
-    db.get(checkSql, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        if (!row) {
+    try {
+        const comment = await prisma.comment.findUnique({
+            where: { id: parseInt(id) }
+        });
+        
+        if (!comment) {
             res.status(404).json({ error: '评论不存在' });
             return;
         }
-        if (row.user_id !== userId) {
+        
+        if (comment.userId !== userId) {
             res.status(403).json({ error: '无权删除此评论' });
             return;
         }
         
-        db.run(`DELETE FROM comments WHERE id = ?`, [id], function(err) {
-            if (err) {
-                console.error('删除评论失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            res.json({ message: '评论删除成功' });
+        await prisma.comment.delete({
+            where: { id: parseInt(id) }
         });
-    });
+        
+        res.json({ message: '评论删除成功' });
+    } catch (error) {
+        console.error('删除评论失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 module.exports = {

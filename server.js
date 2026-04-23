@@ -4,6 +4,10 @@ const path = require('path');
 const compression = require('compression');
 const apicache = require('apicache');
 
+// 初始化 Prisma Client
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
 const app = express();
 const PORT = 3000;
 
@@ -32,17 +36,23 @@ app.use('/', seoRoutes);               // /rss.xml, /sitemap.xml
 
 // 静态文件缓存
 app.use(express.static('public', {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 缓存7天
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     etag: true,
     lastModified: true
 }));
 
 // 提供上传文件访问
 app.use('/uploads', express.static('uploads', {
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 图片缓存30天
+    maxAge: 30 * 24 * 60 * 60 * 1000,
 }));
 
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);
+});
+
+// 优雅关闭
+process.on('SIGINT', async () => {
+    await prisma.$disconnect();
+    process.exit(0);
 });

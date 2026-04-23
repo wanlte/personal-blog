@@ -1,80 +1,89 @@
 // controllers/articlesController.js - 文章控制器
-const db = require('../db/db');
+const prisma = require('../db/index');
 
 // 获取所有已发布的文章列表
-function getArticles(req, res) {
+async function getArticles(req, res) {
     const tagName = req.query.tag;
     
-    let sql;
-    let params = [];
-    
-    if (tagName) {
-        sql = `
-            SELECT a.*, u.username as author_name 
-            FROM articles a
-            LEFT JOIN users u ON a.user_id = u.id 
-            LEFT JOIN article_tags at ON a.id = at.article_id
-            LEFT JOIN tags t ON at.tag_id = t.id
-            WHERE t.name = ? AND a.status = 'published'
-            ORDER BY a.is_pinned DESC, a.created_at DESC
-        `;
-        params = [tagName];
-    } else {
-        sql = `
-            SELECT a.*, u.username as author_name 
-            FROM articles a
-            LEFT JOIN users u ON a.user_id = u.id 
-            WHERE a.status = 'published'
-            ORDER BY a.is_pinned DESC, a.created_at DESC
-        `;
-    }
-    
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            console.error('查询失败:', err.message);
-            res.status(500).json({ error: err.message });
-            return;
+    try {
+        if (tagName) {
+            const articles = await prisma.article.findMany({
+                where: {
+                    status: 'published',
+                    tags: {
+                        some: {
+                            tag: {
+                                name: tagName
+                            }
+                        }
+                    }
+                },
+                include: {
+                    user: {
+                        select: { username: true }
+                    }
+                },
+                orderBy: [
+                    { isPinned: 'desc' },
+                    { createdAt: 'desc' }
+                ]
+            });
+            res.json(articles);
+        } else {
+            const articles = await prisma.article.findMany({
+                where: { status: 'published' },
+                include: {
+                    user: {
+                        select: { username: true }
+                    }
+                },
+                orderBy: [
+                    { isPinned: 'desc' },
+                    { createdAt: 'desc' }
+                ]
+            });
+            res.json(articles);
         }
-        res.json(rows);
-    });
+    } catch (error) {
+        console.error('查询失败:', error.message);
+        res.status(500).json({ error: error.message });
+    }
 }
 
 // 获取单篇文章
-function getArticle(req, res) {
+async function getArticle(req, res) {
     const { id } = req.params;
     
-    const selectSql = `
-        SELECT articles.*, users.username as author_name 
-        FROM articles 
-        LEFT JOIN users ON articles.user_id = users.id 
-        WHERE articles.id = ?
-    `;
-    
-    db.get(selectSql, [id], (err, row) => {
-        if (err) {
-            console.error('查询失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                user: {
+                    select: { username: true }
+                }
+            }
+        });
         
-        if (!row) {
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
         
         // 增加浏览量
-        const updateSql = `UPDATE articles SET views = views + 1 WHERE id = ?`;
-        db.run(updateSql, [id], (updateErr) => {
-            if (updateErr) {
-                console.error('更新浏览量失败:', updateErr.message);
-            }
-            res.json(row);
+        await prisma.article.update({
+            where: { id: parseInt(id) },
+            data: { views: { increment: 1 } }
         });
-    });
+        
+        res.json(article);
+    } catch (error) {
+        console.error('查询失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 创建新文章
-function createArticle(req, res) {
+async function createArticle(req, res) {
     const { title, content, summary } = req.body;
     const userId = req.user.userId;
     
@@ -83,28 +92,33 @@ function createArticle(req, res) {
         return;
     }
     
-    const sql = `INSERT INTO articles (title, content, summary, user_id, status) VALUES (?, ?, ?, ?, 'published')`;
-    
-    db.run(sql, [title, content || '', summary || '', userId], function(err) {
-        if (err) {
-            console.error('创建失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const article = await prisma.article.create({
+            data: {
+                title,
+                content: content || '',
+                summary: summary || '',
+                userId,
+                status: 'published'
+            }
+        });
         
         res.json({
-            id: this.lastID,
-            title,
-            content: content || '',
-            summary: summary || '',
+            id: article.id,
+            title: article.title,
+            content: article.content || '',
+            summary: article.summary || '',
             views: 0,
             message: '文章创建成功'
         });
-    });
+    } catch (error) {
+        console.error('创建失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 更新文章
-function updateArticle(req, res) {
+async function updateArticle(req, res) {
     const { id } = req.params;
     const { title, content, summary } = req.body;
     const userId = req.user.userId;
@@ -114,206 +128,190 @@ function updateArticle(req, res) {
         return;
     }
     
-    // 先检查文章是否属于当前用户
-    const checkSql = `SELECT user_id FROM articles WHERE id = ?`;
-    db.get(checkSql, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) }
+        });
         
-        if (!row) {
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
         
-        if (row.user_id !== userId) {
+        if (article.userId !== userId) {
             res.status(403).json({ error: '无权修改此文章' });
             return;
         }
         
-        // 更新文章
-        const sql = `UPDATE articles 
-                     SET title = ?, content = ?, summary = ?, updated_at = CURRENT_TIMESTAMP 
-                     WHERE id = ?`;
-        
-        db.run(sql, [title, content || '', summary || '', id], function(err) {
-            if (err) {
-                console.error('更新失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
+        await prisma.article.update({
+            where: { id: parseInt(id) },
+            data: {
+                title,
+                content: content || '',
+                summary: summary || ''
             }
-            
-            res.json({ message: '文章更新成功', id: parseInt(id) });
         });
-    });
+        
+        res.json({ message: '文章更新成功', id: parseInt(id) });
+    } catch (error) {
+        console.error('更新失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 删除文章
-function deleteArticle(req, res) {
+async function deleteArticle(req, res) {
     const { id } = req.params;
     const userId = req.user.userId;
     
-    const checkSql = `SELECT user_id FROM articles WHERE id = ?`;
-    db.get(checkSql, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) }
+        });
         
-        if (!row) {
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
         
-        if (row.user_id !== userId) {
+        if (article.userId !== userId) {
             res.status(403).json({ error: '无权删除此文章' });
             return;
         }
         
-        const sql = `DELETE FROM articles WHERE id = ?`;
-        db.run(sql, [id], function(err) {
-            if (err) {
-                console.error('删除失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            
-            res.json({ message: '文章删除成功', id: parseInt(id) });
+        await prisma.article.delete({
+            where: { id: parseInt(id) }
         });
-    });
+        
+        res.json({ message: '文章删除成功', id: parseInt(id) });
+    } catch (error) {
+        console.error('删除失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 置顶文章
-function pinArticle(req, res) {
+async function pinArticle(req, res) {
     const { id } = req.params;
     const userId = req.user.userId;
     
-    // 先检查文章是否属于当前用户
-    const checkSql = `SELECT user_id, is_pinned FROM articles WHERE id = ?`;
-    db.get(checkSql, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) }
+        });
         
-        if (!row) {
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
         
-        if (row.user_id !== userId) {
+        if (article.userId !== userId) {
             res.status(403).json({ error: '无权操作此文章' });
             return;
         }
         
-        const newPinStatus = row.is_pinned === 1 ? 0 : 1;
-        const sql = `UPDATE articles SET is_pinned = ? WHERE id = ?`;
-        
-        db.run(sql, [newPinStatus, id], function(err) {
-            if (err) {
-                console.error('置顶操作失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            
-            res.json({ 
-                message: newPinStatus === 1 ? '文章已置顶' : '已取消置顶',
-                is_pinned: newPinStatus
-            });
+        const newPinStatus = article.isPinned === 1 ? 0 : 1;
+        await prisma.article.update({
+            where: { id: parseInt(id) },
+            data: { isPinned: newPinStatus }
         });
-    });
+        
+        res.json({ 
+            message: newPinStatus === 1 ? '文章已置顶' : '已取消置顶',
+            is_pinned: newPinStatus
+        });
+    } catch (error) {
+        console.error('置顶操作失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 保存草稿
-function saveDraft(req, res) {
+async function saveDraft(req, res) {
     const { title, content, summary, tags } = req.body;
     const userId = req.user.userId;
     
-    const sql = `INSERT INTO articles (title, content, summary, user_id, status) 
-                 VALUES (?, ?, ?, ?, 'draft')`;
-    
-    db.run(sql, [title || '无标题', content || '', summary || '', userId], function(err) {
-        if (err) {
-            console.error('保存草稿失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        
-        const articleId = this.lastID;
+    try {
+        const article = await prisma.article.create({
+            data: {
+                title: title || '无标题',
+                content: content || '',
+                summary: summary || '',
+                userId,
+                status: 'draft'
+            }
+        });
         
         // 保存标签
         if (tags) {
             const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
             for (const tagName of tagList) {
-                db.get(`SELECT id FROM tags WHERE name = ?`, [tagName], (err, tag) => {
-                    if (tag) {
-                        db.run(`INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)`, [articleId, tag.id]);
-                    } else {
-                        db.run(`INSERT INTO tags (name) VALUES (?)`, [tagName], function(err) {
-                            if (!err) {
-                                db.run(`INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)`, [articleId, this.lastID]);
-                            }
-                        });
-                    }
+                let tag = await prisma.tag.findUnique({ where: { name: tagName } });
+                if (!tag) {
+                    tag = await prisma.tag.create({ data: { name: tagName } });
+                }
+                await prisma.articleTag.create({
+                    data: { articleId: article.id, tagId: tag.id }
                 });
             }
         }
         
-        res.json({ id: articleId, message: '草稿已保存' });
-    });
+        res.json({ id: article.id, message: '草稿已保存' });
+    } catch (error) {
+        console.error('保存草稿失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 获取草稿列表
-function getDrafts(req, res) {
+async function getDrafts(req, res) {
     const userId = req.user.userId;
     
-    const sql = `
-        SELECT * FROM articles 
-        WHERE user_id = ? AND status = 'draft'
-        ORDER BY updated_at DESC
-    `;
-    
-    db.all(sql, [userId], (err, rows) => {
-        if (err) {
-            console.error('获取草稿失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        res.json(rows);
-    });
+    try {
+        const drafts = await prisma.article.findMany({
+            where: {
+                userId,
+                status: 'draft'
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        res.json(drafts);
+    } catch (error) {
+        console.error('获取草稿失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 // 发布草稿
-function publishDraft(req, res) {
+async function publishDraft(req, res) {
     const { id } = req.params;
     const userId = req.user.userId;
     
-    // 验证文章属于当前用户
-    db.get(`SELECT user_id FROM articles WHERE id = ?`, [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
-        if (!row) {
+    try {
+        const article = await prisma.article.findUnique({
+            where: { id: parseInt(id) }
+        });
+        
+        if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
-        if (row.user_id !== userId) {
+        
+        if (article.userId !== userId) {
             res.status(403).json({ error: '无权操作' });
             return;
         }
         
-        const sql = `UPDATE articles SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-        db.run(sql, [id], function(err) {
-            if (err) {
-                console.error('发布失败:', err.message);
-                res.status(500).json({ error: '服务器错误' });
-                return;
-            }
-            res.json({ message: '发布成功' });
+        await prisma.article.update({
+            where: { id: parseInt(id) },
+            data: { status: 'published' }
         });
-    });
+        
+        res.json({ message: '发布成功' });
+    } catch (error) {
+        console.error('发布失败:', error.message);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 module.exports = {

@@ -1,0 +1,87 @@
+// prisma/schema.prisma
+// PostgreSQL 数据库 schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  articles  Article[]
+  comments  Comment[]
+
+  @@map("users")
+}
+
+// 文章表
+model Article {
+  id        Int       @id @default(autoincrement())
+  title     String    @db.VarChar(255)
+  content   String?   @db.Text
+  summary   String?   @db.Text
+  userId    Int?      @map("user_id")
+  views     Int       @default(0)
+  status    String    @default("published") @map("status") @db.VarChar(20)
+  isPinned  Int       @default(0) @map("is_pinned")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments  Comment[]
+  tags      ArticleTag[]
+
+  @@map("articles")
+}
+
+// 标签表
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique @db.VarChar(100)
+  createdAt DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  articles  ArticleTag[]
+
+  @@map("tags")
+}
+
+// 文章-标签关联表（多对多）
+model ArticleTag {
+  articleId Int       @map("article_id")
+  tagId     Int       @map("tag_id")
+  
+  // 关联
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+// 评论表
+model Comment {
+  id        Int       @id @default(autoincrement())
+  content   String    @db.Text
+  articleId Int       @map("article_id")
+  userId    Int?      @map("user_id")
+  userName  String?   @map("user_name") @db.VarChar(100)
+  createdAt DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("comments")
+}

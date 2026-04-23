@@ -1,7 +1,7 @@
 // controllers/authController.js - 用户认证控制器
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const db = require('../db/db');
+const prisma = require('../db/index');
 const { JWT_SECRET } = require('../middleware/auth');
 
 // POST /api/register - 用户注册
@@ -20,35 +20,29 @@ async function register(req, res) {
     
     try {
         // 检查用户是否已存在
-        const checkSql = `SELECT id FROM users WHERE username = ?`;
-        db.get(checkSql, [username], async (err, row) => {
-            if (err) {
-                res.status(500).json({ error: '服务器错误' });
-                return;
+        const existingUser = await prisma.user.findUnique({
+            where: { username }
+        });
+        
+        if (existingUser) {
+            res.status(400).json({ error: '用户名已存在' });
+            return;
+        }
+        
+        // 加密密码
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // 插入新用户
+        const user = await prisma.user.create({
+            data: {
+                username,
+                password: hashedPassword
             }
-            
-            if (row) {
-                res.status(400).json({ error: '用户名已存在' });
-                return;
-            }
-            
-            // 加密密码
-            const hashedPassword = await bcrypt.hash(password, 10);
-            
-            // 插入新用户
-            const insertSql = `INSERT INTO users (username, password) VALUES (?, ?)`;
-            db.run(insertSql, [username, hashedPassword], function(err) {
-                if (err) {
-                    console.error('注册失败:', err.message);
-                    res.status(500).json({ error: '注册失败' });
-                    return;
-                }
-                
-                res.json({ 
-                    message: '注册成功', 
-                    userId: this.lastID 
-                });
-            });
+        });
+        
+        res.json({ 
+            message: '注册成功', 
+            userId: user.id 
         });
     } catch (error) {
         console.error('注册错误:', error);
@@ -65,13 +59,10 @@ async function login(req, res) {
         return;
     }
     
-    const sql = `SELECT * FROM users WHERE username = ?`;
-    db.get(sql, [username], async (err, user) => {
-        if (err) {
-            console.error('登录失败:', err.message);
-            res.status(500).json({ error: '服务器错误' });
-            return;
-        }
+    try {
+        const user = await prisma.user.findUnique({
+            where: { username }
+        });
         
         if (!user) {
             res.status(401).json({ error: '用户名或密码错误' });
@@ -100,7 +91,10 @@ async function login(req, res) {
                 username: user.username
             }
         });
-    });
+    } catch (error) {
+        console.error('登录失败:', error);
+        res.status(500).json({ error: '服务器错误' });
+    }
 }
 
 module.exports = { register, login };
