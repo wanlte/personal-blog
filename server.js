@@ -23,6 +23,7 @@ const tagsRoutes = require('./routes/tags');
 const statsRoutes = require('./routes/stats');
 const uploadRoutes = require('./routes/upload');
 const seoRoutes = require('./routes/seo');
+const subscriptionRoutes = require('./routes/subscription');
 
 // 中间件
 app.use(compression()); // 压缩
@@ -36,6 +37,7 @@ app.use('/api', commentsRoutes);       // /api/articles/:id/comments, /api/comme
 app.use('/api', tagsRoutes);           // /api/tags, /api/articles/:id/tags
 app.use('/api', statsRoutes);          // /api/search, /api/popular, /api/archive, /api/stats
 app.use('/api/upload', uploadRoutes);  // /api/upload
+app.use('/api/subscription', subscriptionRoutes); // /api/subscription/*
 app.use('/', seoRoutes);               // /rss.xml, /sitemap.xml
 
 // 静态文件缓存

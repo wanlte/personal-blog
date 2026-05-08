@@ -18,8 +18,10 @@ model User {
   createdAt DateTime  @default(now()) @map("created_at")
   
   // 关联
-  articles  Article[]
-  comments  Comment[]
+  articles      Article[]
+  comments      Comment[]
+  subscriptions UserSubscription[]
+  payments      PaymentRecord[]
 
   @@map("users")
 }
@@ -84,4 +86,58 @@ model Comment {
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("comments")
+}
+
+// 订阅方案表
+model SubscriptionPlan {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(50)
+  price        Decimal   @db.Decimal(10, 2)
+  durationDays Int       @map("duration_days")
+  features     Json      @default("[]")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  subscriptions UserSubscription[]
+
+  @@map("subscription_plans")
+}
+
+// 用户订阅表
+model UserSubscription {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  planId    Int       @map("plan_id")
+  status    String    @default("active") @map("status") @db.VarChar(20) // active, expired, cancelled
+  startDate DateTime  @map("start_date")
+  endDate   DateTime  @map("end_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+  
+  // 索引
+  @@index([userId])
+  @@index([status])
+  @@map("user_subscriptions")
+}
+
+// 支付记录表
+model PaymentRecord {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  subscriptionId Int?      @map("subscription_id")
+  amount        Decimal   @db.Decimal(10, 2)
+  paymentMethod String    @map("payment_method") @db.VarChar(50)
+  status        String    @default("pending") @map("status") @db.VarChar(20) // pending, completed, failed, refunded
+  transactionId String?   @map("transaction_id") @db.VarChar(100)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("payment_records")
 }

@@ -17,6 +17,39 @@ async function main() {
   });
   console.log(`✅ 创建测试文章成功，ID: ${article.id}`);
 
+  // 创建订阅方案
+  const plans = [
+    {
+      name: '月度会员',
+      price: 9.9,
+      durationDays: 30,
+      features: ['adFree', 'highQuality', 'earlyAccess']
+    },
+    {
+      name: '年度会员',
+      price: 99,
+      durationDays: 365,
+      features: ['adFree', 'highQuality', 'earlyAccess', 'exclusiveContent', 'prioritySupport']
+    },
+    {
+      name: '永久会员',
+      price: 299,
+      durationDays: 36500, // 约100年
+      features: ['adFree', 'highQuality', 'earlyAccess', 'exclusiveContent', 'prioritySupport', 'lifetimeUpdates']
+    }
+  ];
+
+  for (const plan of plans) {
+    const existing = await prisma.subscriptionPlan.findFirst({
+      where: { name: plan.name }
+    });
+    
+    if (!existing) {
+      await prisma.subscriptionPlan.create({ data: plan });
+      console.log(`✅ 创建订阅方案: ${plan.name}`);
+    }
+  }
+
   console.log('✅ 数据库初始化完成');
 }
 
