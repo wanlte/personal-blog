@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创作者中心 - 个人博客</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-logo">Blog.</a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/#articles">文章</a></li>
+            <li><a href="/archive.html">归档</a></li>
+            <li><a href="/about.html">关于</a></li>
+        </ul>
+        <div class="nav-actions">
+            <div id="userInfo"></div>
+            <div id="memberEntry"></div>
+            <a href="/write.html" class="btn btn-primary">✍️ 写文章</a>
+        </div>
+    </nav>
+
+    <div class="creator-dashboard" style="padding-top:100px;">
+        <!-- 创作者头部 -->
+        <div id="creatorHeader" class="creator-header">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="creator-tabs">
+            <button class="creator-tab active" data-tab="overview">📊 总览</button>
+            <button class="creator-tab" data-tab="articles">📝 文章管理</button>
+            <button class="creator-tab" data-tab="earnings">💰 收入</button>
+            <button class="creator-tab" data-tab="settings">⚙️ 设置</button>
+        </div>
+
+        <!-- 总览 -->
+        <div id="tabOverview" class="creator-tab-content">
+            <div class="creator-stats-grid" id="statsGrid">
+                <div class="loading">加载统计中...</div>
+            </div>
+            <div class="dashboard-section">
+                <h2>📈 近7天发文趋势</h2>
+                <div id="creatorTrendChart" class="trend-chart">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文章管理 -->
+        <div id="tabArticles" class="creator-tab-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h2>📝 我的文章</h2>
+                <a href="/write.html" class="btn btn-primary">✍️ 写新文章</a>
+            </div>
+            <div id="articlesTableContainer">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 收入 -->
+        <div id="tabEarnings" class="creator-tab-content" style="display:none;">
+            <h2>💰 收入明细</h2>
+            <div id="earningsContainer">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 设置 -->
+        <div id="tabSettings" class="creator-tab-content" style="display:none;">
+            <div class="dashboard-section">
+                <h2>⚙️ 创作者设置</h2>
+                <div class="form-group">
+                    <label for="creatorBio">个人简介</label>
+                    <textarea id="creatorBio" rows="3" placeholder="介绍一下自己..." style="width:100%;padding:12px;border:1px solid var(--border-color);border-radius:8px;font-family:inherit;font-size:14px;"></textarea>
+                </div>
+                <button id="saveProfileBtn" class="btn btn-primary">保存设置</button>
+                <div id="profileMessage" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="commercial-footer" style="margin-top:60px;">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>Blog.</h3>
+                <p>一个分享技术、生活和思考的个人博客平台。</p>
+            </div>
+            <div class="footer-col">
+                <h4>浏览</h4>
+                <a href="/">首页</a>
+                <a href="/#articles">文章列表</a>
+                <a href="/subscribe.html">会员订阅</a>
+            </div>
+            <div class="footer-col">
+                <h4>功能</h4>
+                <a href="/write.html">写文章</a>
+                <a href="/dashboard.html">数据仪表盘</a>
+            </div>
+            <div class="footer-col">
+                <h4>关于</h4>
+                <a href="/about.html">关于本站</a>
+                <a href="https://github.com/wanlte/personal-blog" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024-2026 Blog. 由 Node.js + Express 驱动 | 保留所有权利</p>
+        </div>
+    </footer>
+
+    <script src="/creator.js"></script>
+</body>
+</html>

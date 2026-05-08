@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/api/stats)",
+      "Bash(curl -s http://localhost:3000/api/articles)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:3000/api/tags)",
+      "Bash(curl -s http://localhost:3000/api/popular)",
+      "Bash(curl -s http://localhost:3000/rss.xml)",
+      "Bash(curl -s -X POST http://localhost:3000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"test\",\"password\":\"test123\"}')",
+      "Bash(curl *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(taskkill /F /PID 36632)",
+      "Bash(netstat -ano)",
+      "Bash(//f taskkill *)",
+      "Bash(cmd.exe /c \"taskkill /F /PID 36632\")",
+      "Bash(powershell.exe *)",
+      "Bash(psql --version)",
+      "Bash(pg_isready)",
+      "Bash(cmd.exe *)",
+      "Bash(npx jest *)",
+      "Bash(npx prisma *)",
+      "Bash(PGPASSWORD=123456 psql -h localhost -U postgres -d blog_test -c \"\\\\dt\")",
+      "Bash(DATABASE_URL=\"postgresql://postgres:123456@localhost:5432/blog_test?schema=public\" npx prisma db push --skip-generate)",
+      "Skill(update-config)",
+      "Bash(npx eslint *)",
+      "Bash(npm view *)"
+    ]
+  }
+}

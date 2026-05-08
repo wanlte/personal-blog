@@ -7,13 +7,28 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-logo">Blog.</a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/#articles">文章</a></li>
+            <li><a href="/archive.html">归档</a></li>
+            <li><a href="/about.html">关于</a></li>
+        </ul>
+        <div class="nav-actions">
+            <div id="userInfo"></div>
+            <a href="/write.html" class="btn btn-primary">✍️ 写文章</a>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top:100px;">
         <div class="auth-container">
             <div class="auth-tabs">
                 <button class="tab-btn active" data-tab="login">登录</button>
                 <button class="tab-btn" data-tab="register">注册</button>
             </div>
-            
+
             <!-- 登录表单 -->
             <div id="loginForm" class="auth-form active">
                 <h2>欢迎回来</h2>
@@ -23,10 +38,21 @@
                 <div class="form-group">
                     <input type="password" id="loginPassword" placeholder="密码" required>
                 </div>
-                <button id="loginBtn" class="btn btn-primary">登录</button>
+                <button id="loginBtn" class="btn btn-primary" style="width:100%;">登录</button>
                 <div id="loginMessage" class="message"></div>
+
+                <!-- 订阅方案展示 -->
+                <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-color);">
+                    <p style="font-size:13px;color:var(--text-tertiary);text-align:center;margin-bottom:12px;">💎 订阅会员，享受更多特权</p>
+                    <div class="plans-showcase" id="plansShowcase">
+                        <div class="loading" style="padding:10px;">加载方案中...</div>
+                    </div>
+                    <p style="text-align:center;margin-top:12px;">
+                        <a href="/subscribe.html" style="color:var(--gradient-start);font-size:13px;">查看全部方案 →</a>
+                    </p>
+                </div>
             </div>
-            
+
             <!-- 注册表单 -->
             <div id="registerForm" class="auth-form">
                 <h2>创建账号</h2>
@@ -36,11 +62,45 @@
                 <div class="form-group">
                     <input type="password" id="regPassword" placeholder="密码（至少6位）" required>
                 </div>
-                <button id="registerBtn" class="btn btn-primary">注册</button>
+
+                <!-- 注册时选择订阅方案 -->
+                <div class="auth-sub-plan" id="registerPlanSelect">
+                    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">🎁 选择会员方案（可选）</p>
+                    <div id="registerPlanOptions" class="plan-options">
+                        <div class="loading" style="padding:8px;">加载中...</div>
+                    </div>
+                </div>
+
+                <button id="registerBtn" class="btn btn-primary" style="width:100%;">注册</button>
                 <div id="registerMessage" class="message"></div>
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="commercial-footer" style="margin-top:60px;">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>Blog.</h3>
+                <p>一个分享技术、生活和思考的个人博客平台。</p>
+            </div>
+            <div class="footer-col">
+                <h4>浏览</h4>
+                <a href="/">首页</a>
+                <a href="/#articles">文章列表</a>
+                <a href="/subscribe.html">会员订阅</a>
+            </div>
+            <div class="footer-col">
+                <h4>关于</h4>
+                <a href="/about.html">关于本站</a>
+                <a href="https://github.com/wanlte/personal-blog" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024-2026 Blog. 由 Node.js + Express 驱动 | 保留所有权利</p>
+        </div>
+    </footer>
+
     <script src="/auth.js"></script>
 </body>
 </html>

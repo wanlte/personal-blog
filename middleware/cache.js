@@ -1,5 +1,10 @@
 // middleware/cache.js - 缓存中间件
-const { get, set, CACHE_KEYS, CACHE_TTL } = require('../utils/cache');
+const { isReady, get, set, CACHE_KEYS, CACHE_TTL } = require('../utils/cache');
+
+// 检查 Redis 是否可用
+function isRedisReady() {
+    return isReady();
+}
 
 // 生成缓存键（支持函数或字符串）
 function getCacheKey(key, req) {
@@ -12,21 +17,26 @@ function getCacheKey(key, req) {
 // 通用缓存中间件
 function cacheMiddleware(key, ttl) {
     return async (req, res, next) => {
+        // Redis 不可用时跳过缓存
+        if (!isRedisReady()) {
+            return next();
+        }
+
         const cacheKey = getCacheKey(key, req);
-        
+
         // 尝试从缓存获取
         const cached = await get(cacheKey);
         if (cached) {
             return res.json(cached);
         }
-        
+
         // 拦截 json 方法，缓存响应
         const originalJson = res.json.bind(res);
         res.json = async (data) => {
             await set(cacheKey, data, ttl);
             return originalJson(data);
         };
-        
+
         next();
     };
 }
@@ -59,6 +69,7 @@ module.exports = {
     cacheMiddleware,
     clearArticleCache,
     clearTagCache,
+    isRedisReady,
     CACHE_KEYS,
     CACHE_TTL
 };

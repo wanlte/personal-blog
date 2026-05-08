@@ -3,32 +3,43 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../db/index');
 const { JWT_SECRET } = require('../middleware/auth');
 
-// 发表评论
+// 发表评论（支持嵌套回复）
 async function createComment(req, res) {
     const { id } = req.params;
-    const { content, userName } = req.body;
-    
+    const { content, userName, parentId } = req.body;
+
     if (!content || content.trim() === '') {
         res.status(400).json({ error: '评论内容不能为空' });
         return;
     }
-    
+
     try {
         // 检查文章是否存在
         const article = await prisma.article.findUnique({
             where: { id: parseInt(id) }
         });
-        
+
         if (!article) {
             res.status(404).json({ error: '文章不存在' });
             return;
         }
-        
+
+        // 如果指定了 parentId，检查父评论是否存在
+        if (parentId) {
+            const parentComment = await prisma.comment.findUnique({
+                where: { id: parseInt(parentId) }
+            });
+            if (!parentComment) {
+                res.status(404).json({ error: '父评论不存在' });
+                return;
+            }
+        }
+
         // 获取当前登录用户
         const token = req.headers.authorization?.split(' ')[1];
         let userId = null;
         let finalUserName = userName || '匿名';
-        
+
         if (token) {
             try {
                 const decoded = jwt.decode(token);
@@ -38,20 +49,22 @@ async function createComment(req, res) {
                 console.error('解析token失败', e);
             }
         }
-        
+
         const comment = await prisma.comment.create({
             data: {
                 content: content.trim(),
                 articleId: parseInt(id),
                 userId,
-                userName: finalUserName
+                userName: finalUserName,
+                parentId: parentId ? parseInt(parentId) : null
             }
         });
-        
+
         res.json({
             id: comment.id,
             content: comment.content,
             user_name: comment.userName,
+            parent_id: comment.parentId,
             created_at: comment.createdAt
         });
     } catch (error) {
@@ -76,10 +89,16 @@ async function getComments(req, res) {
         });
         
         const result = comments.map(c => ({
-            ...c,
+            id: c.id,
+            content: c.content,
+            article_id: c.articleId,
+            user_id: c.userId,
+            user_name: c.userName,
+            parent_id: c.parentId,
+            created_at: c.createdAt,
             user_avatar: c.user?.username
         }));
-        
+
         res.json(result);
     } catch (error) {
         console.error('获取评论失败:', error.message);

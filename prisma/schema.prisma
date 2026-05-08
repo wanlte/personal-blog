@@ -12,17 +12,28 @@ datasource db {
 
 // 用户表
 model User {
-  id        Int       @id @default(autoincrement())
-  username  String    @unique @db.VarChar(255)
-  password  String    @db.VarChar(255)
-  createdAt DateTime  @default(now()) @map("created_at")
-  
-  // 关联
-  articles      Article[]
-  comments      Comment[]
-  subscriptions UserSubscription[]
-  payments      PaymentRecord[]
+  id            Int       @id @default(autoincrement())
+  username      String    @unique @db.VarChar(255)
+  password      String?   @db.VarChar(255)
+  email         String?   @unique @db.VarChar(320)
+  avatar        String?   @db.VarChar(500)
+  oauthProvider String?   @map("oauth_provider") @db.VarChar(20)
+  oauthId       String?   @map("oauth_id") @db.VarChar(100)
+  createdAt     DateTime  @default(now()) @map("created_at")
 
+  // 关联
+  articles        Article[]
+  comments        Comment[]
+  subscriptions   UserSubscription[]
+  payments        PaymentRecord[]
+  likes           ArticleLike[]
+  collections     ArticleCollection[]
+  followers       UserFollow[]    @relation("Followers")
+  following       UserFollow[]    @relation("Following")
+  purchases       ArticlePurchase[]
+  creatorProfile  CreatorProfile?
+
+  @@unique([oauthProvider, oauthId])
   @@map("users")
 }
 
@@ -36,13 +47,18 @@ model Article {
   views     Int       @default(0)
   status    String    @default("published") @map("status") @db.VarChar(20)
   isPinned  Int       @default(0) @map("is_pinned")
+  isPaid    Int       @default(0) @map("is_paid")
+  price     Decimal?  @default(0) @db.Decimal(10, 2)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-  
+
   // 关联
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments  Comment[]
   tags      ArticleTag[]
+  likes     ArticleLike[]
+  collections ArticleCollection[]
+  purchases ArticlePurchase[]
 
   @@map("articles")
 }
@@ -72,20 +88,98 @@ model ArticleTag {
   @@map("article_tags")
 }
 
-// 评论表
+// 评论表（支持嵌套回复）
 model Comment {
   id        Int       @id @default(autoincrement())
   content   String    @db.Text
   articleId Int       @map("article_id")
   userId    Int?      @map("user_id")
   userName  String?   @map("user_name") @db.VarChar(100)
+  parentId  Int?      @map("parent_id")
   createdAt DateTime  @default(now()) @map("created_at")
-  
-  // 关联
-  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  // 关联
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parent    Comment?   @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   Comment[]  @relation("CommentReplies")
+
+  @@index([articleId])
+  @@index([parentId])
   @@map("comments")
+}
+
+// 文章点赞表
+model ArticleLike {
+  id        Int      @id @default(autoincrement())
+  articleId Int      @map("article_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@map("article_likes")
+}
+
+// 文章收藏表
+model ArticleCollection {
+  id        Int      @id @default(autoincrement())
+  articleId Int      @map("article_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@map("article_collections")
+}
+
+// 用户关注表
+model UserFollow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int      @map("follower_id")
+  followingId Int      @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+// 文章付费阅读购买记录
+model ArticlePurchase {
+  id        Int      @id @default(autoincrement())
+  articleId Int      @map("article_id")
+  userId    Int      @map("user_id")
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@map("article_purchases")
+}
+
+// 创作者信息（扩展用户）
+model CreatorProfile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  bio         String?  @db.Text
+  avatar      String?  @db.VarChar(500)
+  isVerified  Boolean  @default(false) @map("is_verified")
+  totalEarnings Decimal? @default(0) @map("total_earnings") @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("creator_profiles")
 }
 
 // 订阅方案表

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员订阅 - 个人博客</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-logo">Blog.</a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/#articles">文章</a></li>
+            <li><a href="/archive.html">归档</a></li>
+            <li><a href="/about.html">关于</a></li>
+        </ul>
+        <div class="nav-actions">
+            <div id="userInfo"></div>
+            <div id="memberEntry"></div>
+            <a href="/write.html" class="btn btn-primary">✍️ 写文章</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="subscribe-hero">
+        <h1>💎 选择适合你的方案</h1>
+        <p>订阅会员，享受付费文章、专属标识等独家特权</p>
+    </section>
+
+    <div class="subscribe-container">
+        <!-- 当前订阅状态 -->
+        <div id="currentSubscription" style="display:none;"></div>
+
+        <!-- 方案列表 -->
+        <div id="plansContainer">
+            <div class="loading">加载方案中...</div>
+        </div>
+
+        <!-- 订阅历史 -->
+        <div id="subscriptionHistory" style="display:none;">
+            <h2 style="margin-bottom:16px;">📋 订阅历史</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="commercial-footer">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>Blog.</h3>
+                <p>一个分享技术、生活和思考的个人博客平台。</p>
+            </div>
+            <div class="footer-col">
+                <h4>浏览</h4>
+                <a href="/">首页</a>
+                <a href="/#articles">文章列表</a>
+                <a href="/archive.html">文章归档</a>
+            </div>
+            <div class="footer-col">
+                <h4>功能</h4>
+                <a href="/write.html">写文章</a>
+                <a href="/creator.html">创作者中心</a>
+                <a href="/dashboard.html">数据仪表盘</a>
+            </div>
+            <div class="footer-col">
+                <h4>关于</h4>
+                <a href="/about.html">关于本站</a>
+                <a href="https://github.com/wanlte/personal-blog" target="_blank">GitHub</a>
+                <a href="#">隐私政策</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024-2026 Blog. 由 Node.js + Express 驱动 | 保留所有权利</p>
+        </div>
+    </footer>
+
+    <script src="/subscribe.js"></script>
+</body>
+</html>

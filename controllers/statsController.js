@@ -181,7 +181,7 @@ async function getStats(req, res) {
             totalUsers: totalUsers || 0,
             todayArticles: todayArticles || 0,
             popularArticles: popularArticles || [],
-            trend: trendData || []
+            trend: (trendData || []).map(t => ({ ...t, count: Number(t.count) }))
         });
     } catch (error) {
         console.error('统计失败:', error.message);

@@ -22,4 +22,25 @@ function authenticateToken(req, res, next) {
     });
 }
 
-module.exports = { authenticateToken, JWT_SECRET };
+// 可选认证中间件（不强制登录，但如果有token则解析）
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        req.user = null;
+        next();
+        return;
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            req.user = null;
+        } else {
+            req.user = user;
+        }
+        next();
+    });
+}
+
+module.exports = { authenticateToken, optionalAuth, JWT_SECRET };

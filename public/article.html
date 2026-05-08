@@ -28,27 +28,44 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📝 个人博客</h1>
-            <p>记录学习与成长</p>
-            <div class="header-actions">
-                <a href="/write.html" class="write-btn">✍️ 写文章</a>
-            </div>
-        </header>
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-logo">Blog.</a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/#articles">文章</a></li>
+            <li><a href="/archive.html">归档</a></li>
+            <li><a href="/about.html">关于</a></li>
+        </ul>
+        <div class="nav-actions">
+            <div id="userInfo"></div>
+            <div id="memberEntry"></div>
+            <a href="/write.html" class="btn btn-primary">✍️ 写文章</a>
+        </div>
+    </nav>
 
-        <main>
+    <div class="blog-layout" style="max-width:800px;padding-top:100px;">
+        <main class="main-content">
             <div id="articleDetail">
                 <div class="loading">加载中...</div>
             </div>
 
-                <!-- 评论区域 -->
+            <!-- 创作者信息栏 -->
+            <div id="creatorInfoBar" style="display:none;"></div>
+
+            <!-- 互动按钮栏 -->
+            <div id="interactionBar" style="display:none;"></div>
+
+            <!-- 付费遮罩层 -->
+            <div id="paywallOverlay" style="display:none;"></div>
+
+            <!-- 评论区域 -->
             <div class="comments-section">
                 <h3>💬 评论</h3>
                 <div id="commentsList" class="comments-list">
                     <div class="loading">加载评论中...</div>
                 </div>
-    
+
                 <div class="comment-form">
                     <textarea id="commentContent" rows="3" placeholder="写下你的评论..."></textarea>
                     <div class="comment-form-actions">
@@ -59,6 +76,36 @@
             </div>
         </main>
     </div>
+
+    <!-- Footer -->
+    <footer class="commercial-footer">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>Blog.</h3>
+                <p>一个分享技术、生活和思考的个人博客平台。</p>
+            </div>
+            <div class="footer-col">
+                <h4>浏览</h4>
+                <a href="/">首页</a>
+                <a href="/#articles">文章列表</a>
+                <a href="/subscribe.html">会员订阅</a>
+            </div>
+            <div class="footer-col">
+                <h4>功能</h4>
+                <a href="/write.html">写文章</a>
+                <a href="/creator.html">创作者中心</a>
+                <a href="/dashboard.html">数据仪表盘</a>
+            </div>
+            <div class="footer-col">
+                <h4>关于</h4>
+                <a href="/about.html">关于本站</a>
+                <a href="https://github.com/wanlte/personal-blog" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024-2026 Blog. 由 Node.js + Express 驱动 | 保留所有权利</p>
+        </div>
+    </footer>
 
     <script src="/article.js"></script>
     <script src="/comments.js"></script>

@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node
+node_modules
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+
+# 数据库
+*.db
+*.sqlite
+prisma/*.db
+
+# 本地环境
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+logs/
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 上传（生产环境用卷管理，不打包）
+uploads/*
+!uploads/.gitkeep
+
+# 文档
+README.md
+CHANGELOG.md

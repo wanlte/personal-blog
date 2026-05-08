@@ -53,13 +53,18 @@ async function loadArticles() {
        // 渲染文章列表时，为所有图片添加 loading="lazy"
     articlesList.innerHTML = articles.map(article => `
         <div class="article-card ${article.is_pinned === 1 ? 'pinned' : ''}" onclick="viewArticle(${article.id})">
-            ${article.is_pinned === 1 ? '<span class="pinned-badge">📌 置顶</span>' : ''}
-            <h2 class="article-title">${escapeHtml(article.title)}</h2>
-            <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
-            <div class="article-meta">
-                <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
-                <span>📅 ${formatDate(article.created_at)}</span>
-                <span class="article-views">👁️ ${article.views} 次阅读</span>
+            <div class="card-content">
+                <div class="article-header">
+                    ${article.is_pinned === 1 ? '<span class="pinned-badge">📌 置顶</span>' : ''}
+                    ${article.is_paid == 1 ? `<span class="paid-badge"><span class="lock-icon">🔒</span> 付费</span>` : ''}
+                </div>
+                <h2 class="article-title">${escapeHtml(article.title)}</h2>
+                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+                <div class="article-meta">
+                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                    <span>📅 ${formatDate(article.created_at)}</span>
+                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                </div>
             </div>
         </div>
     `).join('');
@@ -81,20 +86,118 @@ function checkAuth() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     const userInfo = document.getElementById('userInfo');
-    
+    const memberEntry = document.getElementById('memberEntry');
+
     if (token && user) {
         userInfo.innerHTML = `
-            <span>👤 ${user.username}</span>
-            <button id="logoutBtn" class="logout-btn">退出</button>
+            <div class="nav-user-menu">
+                <span class="nav-user-name">${escapeHtml(user.username)}</span>
+                <button id="logoutBtn" class="btn btn-ghost" style="padding:6px 12px;font-size:13px;">退出</button>
+            </div>
         `;
-        
+
         document.getElementById('logoutBtn')?.addEventListener('click', () => {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.reload();
         });
+
+        // 检查用户订阅状态
+        checkSubscriptionStatus(token);
     } else {
-        userInfo.innerHTML = `<a href="/login.html" class="login-link">登录</a>`;
+        userInfo.innerHTML = `<a href="/login.html" class="btn btn-ghost" style="padding:6px 12px;font-size:13px;">登录</a>`;
+        if (memberEntry) {
+            memberEntry.innerHTML = `<a href="/subscribe.html" class="nav-member-btn">💎 会员</a>`;
+        }
+    }
+}
+
+// 检查订阅状态 - 显示会员入口
+async function checkSubscriptionStatus(token) {
+    const memberEntry = document.getElementById('memberEntry');
+    if (!memberEntry) return;
+
+    try {
+        const response = await fetch('/api/subscription/status', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.hasSubscription) {
+            memberEntry.innerHTML = `<a href="/subscribe.html" class="nav-member-btn premium">💎 ${data.subscription.planName}</a>`;
+        } else {
+            memberEntry.innerHTML = `<a href="/subscribe.html" class="nav-member-btn">💎 开通会员</a>`;
+        }
+    } catch (error) {
+        memberEntry.innerHTML = `<a href="/subscribe.html" class="nav-member-btn">💎 会员</a>`;
+    }
+}
+
+// 加载热门作者
+async function loadPopularAuthors() {
+    const authorList = document.getElementById('popularAuthorsList');
+    if (!authorList) return;
+
+    try {
+        const response = await fetch('/api/authors/popular');
+        const authors = await response.json();
+
+        if (authors.length === 0) {
+            authorList.innerHTML = '<div class="empty">暂无作者</div>';
+            return;
+        }
+
+        authorList.innerHTML = authors.map(author => `
+            <div class="author-card">
+                <div class="author-avatar-sm">${author.avatar ? `<img src="${author.avatar}" alt="${escapeHtml(author.username)}">` : escapeHtml(author.username.charAt(0).toUpperCase())}</div>
+                <div class="author-info-sm">
+                    <div class="author-name-sm">
+                        ${escapeHtml(author.username)}
+                        ${author.isVerified ? '<span class="creator-badge verified"></span>' : ''}
+                    </div>
+                    <div class="author-meta-sm">${author.articleCount} 篇文章 · ${author.followerCount} 关注</div>
+                </div>
+                <button class="follow-btn-sm" data-user-id="${author.id}">关注</button>
+            </div>
+        `).join('');
+
+        // 绑定关注按钮（POST关注 / DELETE取消）
+        document.querySelectorAll('.follow-btn-sm').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const userId = btn.dataset.userId;
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const isFollowing = btn.classList.contains('following');
+                const method = isFollowing ? 'DELETE' : 'POST';
+
+                try {
+                    const response = await fetch(`/api/users/${userId}/follow`, {
+                        method,
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        btn.textContent = data.following ? '已关注' : '关注';
+                        btn.classList.toggle('following', data.following);
+                    } else {
+                        // 状态冲突时强制切换
+                        btn.classList.toggle('following');
+                        btn.textContent = btn.classList.contains('following') ? '已关注' : '关注';
+                    }
+                } catch (error) {
+                    console.error('关注操作失败:', error);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('加载热门作者失败:', error);
+        authorList.innerHTML = '<div class="error">加载失败</div>';
     }
 }
 
@@ -141,16 +244,21 @@ async function loadArticlesByTag(tagName) {
         
         articlesList.innerHTML = articles.map(article => `
             <div class="article-card" onclick="viewArticle(${article.id})">
-                <h2 class="article-title">${escapeHtml(article.title)}</h2>
-                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
-                <div class="article-meta">
-                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
-                    <span>📅 ${formatDate(article.created_at)}</span>
-                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                <div class="card-content">
+                    <div class="article-header">
+                        ${article.is_paid == 1 ? `<span class="paid-badge"><span class="lock-icon">🔒</span> 付费</span>` : ''}
+                    </div>
+                    <h2 class="article-title">${escapeHtml(article.title)}</h2>
+                    <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+                    <div class="article-meta">
+                        <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                        <span>📅 ${formatDate(article.created_at)}</span>
+                        <span class="article-views">👁️ ${article.views} 次阅读</span>
+                    </div>
                 </div>
             </div>
         `).join('');
-        
+
     } catch (error) {
         console.error('筛选失败:', error);
         articlesList.innerHTML = '<div class="error">❌ 筛选失败</div>';
@@ -188,12 +296,17 @@ async function searchArticles() {
         // 渲染搜索结果，高亮关键词
         articlesList.innerHTML = articles.map(article => `
             <div class="article-card" onclick="viewArticle(${article.id})">
-                <h2 class="article-title">${highlightKeyword(escapeHtml(article.title), keyword)}</h2>
-                <p class="article-summary">${highlightKeyword(escapeHtml(article.summary || '暂无摘要'), keyword)}</p>
-                <div class="article-meta">
-                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
-                    <span>📅 ${formatDate(article.created_at)}</span>
-                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                <div class="card-content">
+                    <div class="article-header">
+                        ${article.is_paid == 1 ? `<span class="paid-badge"><span class="lock-icon">🔒</span> 付费</span>` : ''}
+                    </div>
+                    <h2 class="article-title">${highlightKeyword(escapeHtml(article.title), keyword)}</h2>
+                    <p class="article-summary">${highlightKeyword(escapeHtml(article.summary || '暂无摘要'), keyword)}</p>
+                    <div class="article-meta">
+                        <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                        <span>📅 ${formatDate(article.created_at)}</span>
+                        <span class="article-views">👁️ ${article.views} 次阅读</span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -311,16 +424,21 @@ async function loadArchiveArticles(yearMonth) {
         // 渲染文章列表
         articlesList.innerHTML = articles.map(article => `
             <div class="article-card" onclick="viewArticle(${article.id})">
-                <h2 class="article-title">${escapeHtml(article.title)}</h2>
-                <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
-                <div class="article-meta">
-                    <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
-                    <span>📅 ${formatDate(article.created_at)}</span>
-                    <span class="article-views">👁️ ${article.views} 次阅读</span>
+                <div class="card-content">
+                    <div class="article-header">
+                        ${article.is_paid == 1 ? `<span class="paid-badge"><span class="lock-icon">🔒</span> 付费</span>` : ''}
+                    </div>
+                    <h2 class="article-title">${escapeHtml(article.title)}</h2>
+                    <p class="article-summary">${escapeHtml(article.summary || '暂无摘要')}</p>
+                    <div class="article-meta">
+                        <span>✍️ ${escapeHtml(article.author_name || '匿名')}</span>
+                        <span>📅 ${formatDate(article.created_at)}</span>
+                        <span class="article-views">👁️ ${article.views} 次阅读</span>
+                    </div>
                 </div>
             </div>
         `).join('');
-        
+
         // 高亮当前选中的归档项
         document.querySelectorAll('.archive-item').forEach(item => {
             if (item.dataset.yearmonth === yearMonth) {
@@ -364,18 +482,37 @@ function clearFilter() {
 }
 
 
+// 导航栏滚动毛玻璃效果
+let lastScrollY = 0;
+function handleNavScroll() {
+    const nav = document.querySelector('nav');
+    if (!nav) return;
+    const scrollY = window.scrollY;
+    lastScrollY = scrollY;
+    if (scrollY > 20) {
+        nav.classList.add('scrolled');
+    } else {
+        nav.classList.remove('scrolled');
+    }
+}
+
 // 页面加载时执行初始化操作
 document.addEventListener('DOMContentLoaded', () => {
     loadArticles();
-    loadPopularArticles();  
+    loadPopularArticles();
+    loadPopularAuthors();
     loadTags();
-    loadArchive();  
+    loadArchive();
     checkAuth();
-    
+
+    // 导航栏滚动效果
+    handleNavScroll();
+    window.addEventListener('scroll', handleNavScroll, { passive: true });
+
     // 绑定搜索事件
     const searchBtn = document.getElementById('searchBtn');
     const searchInput = document.getElementById('searchInput');
-    
+
     if (searchBtn) {
         searchBtn.addEventListener('click', searchArticles);
     }

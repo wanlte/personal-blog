@@ -2,28 +2,49 @@
 const redis = require('redis');
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const SKIP_REDIS = process.env.SKIP_REDIS === 'true';
 
-// 创建 Redis 客户端
-const client = redis.createClient({ url: REDIS_URL });
+let client = null;
+let isConnected = false;
 
-// 连接错误处理
-client.on('error', (err) => {
-    console.error('Redis 连接错误:', err.message);
-});
+// 如果禁用 Redis，则创建空实现
+if (SKIP_REDIS) {
+    console.log('⚠️ Redis 已禁用，使用内存缓存');
+} else {
+    try {
+        client = redis.createClient({ url: REDIS_URL });
 
-client.on('connect', () => {
-    console.log('✅ Redis 已连接');
-});
+        // 静默处理连接错误，不输出日志
+        client.on('error', () => {});
+        
+        client.on('connect', () => {
+            isConnected = true;
+            console.log('✅ Redis 已连接');
+        });
+    } catch (e) {
+        client = null;
+    }
+}
 
 // 连接到 Redis
 async function connect() {
-    if (!client.isOpen) {
-        await client.connect();
+    if (client && !client.isOpen && !SKIP_REDIS) {
+        try {
+            await client.connect();
+        } catch (e) {
+            // 连接失败，静默处理
+        }
     }
+}
+
+// 检查是否可用
+function isReady() {
+    return client && client.isOpen && isConnected;
 }
 
 // 设置缓存
 async function set(key, value, ttlSeconds = 300) {
+    if (!isReady()) return false;
     try {
         const data = typeof value === 'object' ? JSON.stringify(value) : value;
         if (ttlSeconds > 0) {
@@ -33,42 +54,40 @@ async function set(key, value, ttlSeconds = 300) {
         }
         return true;
     } catch (err) {
-        console.error('Redis set 错误:', err.message);
         return false;
     }
 }
 
 // 获取缓存
 async function get(key) {
+    if (!isReady()) return null;
     try {
         const data = await client.get(key);
         if (!data) return null;
-        
-        // 尝试解析 JSON
         try {
             return JSON.parse(data);
         } catch {
             return data;
         }
     } catch (err) {
-        console.error('Redis get 错误:', err.message);
         return null;
     }
 }
 
 // 删除缓存
 async function del(key) {
+    if (!isReady()) return false;
     try {
         await client.del(key);
         return true;
     } catch (err) {
-        console.error('Redis del 错误:', err.message);
         return false;
     }
 }
 
 // 删除匹配通配符的缓存
 async function delPattern(pattern) {
+    if (!isReady()) return false;
     try {
         const keys = await client.keys(pattern);
         if (keys.length > 0) {
@@ -76,25 +95,24 @@ async function delPattern(pattern) {
         }
         return true;
     } catch (err) {
-        console.error('Redis delPattern 错误:', err.message);
         return false;
     }
 }
 
 // 检查缓存是否存在
 async function exists(key) {
+    if (!isReady()) return false;
     try {
         const result = await client.exists(key);
         return result === 1;
     } catch (err) {
-        console.error('Redis exists 错误:', err.message);
         return false;
     }
 }
 
 // 关闭连接
 async function close() {
-    if (client.isOpen) {
+    if (client && client.isOpen) {
         await client.quit();
     }
 }
@@ -118,6 +136,7 @@ const CACHE_TTL = {
 module.exports = {
     client,
     connect,
+    isReady,
     set,
     get,
     del,
