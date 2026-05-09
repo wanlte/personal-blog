@@ -27,6 +27,12 @@ app.use('/api/upload', require('../routes/upload'));
 app.use('/api/subscription', require('../routes/subscription'));
 app.use('/api', require('../routes/interact'));
 app.use('/api/creator', require('../routes/creator'));
+app.use('/api', require('../routes/health'));
 app.use('/', require('../routes/seo'));
+
+// 错误处理（捕获所有未处理的路由和错误）
+const { notFoundHandler, globalErrorHandler } = require('../middleware/errorHandler');
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
 
 module.exports = app;

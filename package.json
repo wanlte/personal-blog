@@ -8,6 +8,10 @@
     "test": "jest --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles --forceExit",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
+    "test:badge": "jest-coverage-badges --input coverage/coverage-summary.json --output badges",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:ui": "npx playwright test --ui",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate:dev": "prisma migrate dev",
@@ -18,14 +22,6 @@
     "db:status": "prisma migrate status",
     "db:reset": "prisma migrate reset",
     "db:seed": "node prisma/seed.js"
-  },
-  "jest": {
-    "setupFiles": [
-      "./tests/setup.js"
-    ],
-    "testEnvironment": "node",
-    "testTimeout": 30000,
-    "verbose": true
   },
   "keywords": [],
   "author": "",
@@ -59,9 +55,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "esbuild": "^0.28.0",
     "eslint": "^10.3.0",
     "jest": "^30.3.0",
+    "jest-coverage-badges": "^1.1.2",
+    "playwright": "^1.59.1",
     "prisma": "^6.0.0",
     "supertest": "^7.2.2"
   },

@@ -27,7 +27,8 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:123456@localhost:5432/blog_test?schema=public\" npx prisma db push --skip-generate)",
       "Skill(update-config)",
       "Bash(npx eslint *)",
-      "Bash(npm view *)"
+      "Bash(npm view *)",
+      "Bash(npx playwright *)"
     ]
   }
 }

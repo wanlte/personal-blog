@@ -6,8 +6,16 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+  // 连接池参数通过 DATABASE_URL 查询字符串配置：
+  //   connection_limit=10      最大连接数
+  //   connect_timeout=10       连接超时（秒）
+  //   pool_timeout=20          池等待超时（秒）
+  //   statement_cache_size=1000 预编译语句缓存
+  // 完整示例：
+  //   postgresql://user:pass@host:5432/db?schema=public&connection_limit=10&connect_timeout=10&pool_timeout=20&statement_cache_size=1000
 }
 
 // 用户表

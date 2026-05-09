@@ -6,7 +6,9 @@ const compression = require('compression');
 // 连接 Redis（可选，失败不影响运行）
 const cache = require('./utils/cache');
 const prisma = require('./db/index');
+const database = require('./utils/database');
 cache.connect();
+database.connect();
 
 const app = express();
 const PORT = 3000;
@@ -57,6 +59,7 @@ const seoRoutes = require('./routes/seo');
 const subscriptionRoutes = require('./routes/subscription');
 const interactRoutes = require('./routes/interact');
 const creatorRoutes = require('./routes/creator');
+const healthRoutes = require('./routes/health');
 
 // 挂载路由
 app.use('/api', authRoutes);           // /api/register, /api/login
@@ -70,6 +73,7 @@ app.use('/api/subscription', subscriptionRoutes); // /api/subscription/*
 app.use('/api', interactRoutes);                   // /api/authors, /api/users, /api/articles/:id/like etc.
 app.use('/api/creator', creatorRoutes);             // /api/creator/*
 app.use('/api/admin', require('./routes/admin'));   // /api/admin/jobs
+app.use('/api', healthRoutes);                  // /api/health/db
 app.use('/', seoRoutes);               // /rss.xml, /sitemap.xml
 
 // 静态文件缓存
@@ -107,7 +111,7 @@ app.listen(PORT, () => {
 // 优雅关闭
 process.on('SIGINT', async () => {
     scheduler.shutdown();
-    await prisma.$disconnect();
+    await database.disconnect();
     await cache.close();
     process.exit(0);
 });

@@ -5,3 +5,6 @@ process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
     || 'postgresql://postgres:123456@localhost:5432/blog_test?schema=public';
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'silent';
+process.env.DATABASE_POOL_SIZE = '10';
+process.env.DATABASE_CONNECTION_TIMEOUT = '10000';
+process.env.JWT_SECRET = 'your-secret-key-2024';
