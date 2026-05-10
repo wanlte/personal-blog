@@ -1,5 +1,6 @@
 // utils/logger.js - 结构化日志
 const winston = require('winston');
+const config = require('../config');
 const { format } = winston;
 
 // 控制台输出格式
@@ -24,20 +25,20 @@ const jsonFormat = format.combine(
 );
 
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
+    level: config.log.level,
     defaultMeta: { service: 'blog' },
     transports: [
         new winston.transports.Console({
-            format: process.env.NODE_ENV === 'production' ? jsonFormat : consoleFormat,
+            format: config.server.nodeEnv === 'production' ? jsonFormat : consoleFormat,
         }),
     ],
 });
 
 // 生产环境可加文件日志
-if (process.env.NODE_ENV === 'production' && process.env.LOG_DIR) {
+if (config.server.nodeEnv === 'production' && config.log.dir) {
     logger.add(
         new winston.transports.File({
-            filename: `${process.env.LOG_DIR}/error.log`,
+            filename: `${config.log.dir}/error.log`,
             level: 'error',
             format: jsonFormat,
             maxsize: 10 * 1024 * 1024, // 10MB
@@ -46,7 +47,7 @@ if (process.env.NODE_ENV === 'production' && process.env.LOG_DIR) {
     );
     logger.add(
         new winston.transports.File({
-            filename: `${process.env.LOG_DIR}/combined.log`,
+            filename: `${config.log.dir}/combined.log`,
             format: jsonFormat,
             maxsize: 10 * 1024 * 1024,
             maxFiles: 10,

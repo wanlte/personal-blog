@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理 - 管理后台</title>
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<div id="sidebar"></div>
+<div class="main">
+  <div id="header"></div>
+  <div class="content">
+    <div class="table-card">
+      <div class="table-header">
+        <h2>👥 用户管理</h2>
+        <div class="search-box">
+          <input type="text" class="form-control" id="search" placeholder="搜索用户名/邮箱..." oninput="debounceSearch()">
+        </div>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" onclick="showCreateAdmin()">+ 新建管理员</button>
+      </div>
+      <div id="tableBody"></div>
+      <div id="pagination"></div>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/auth.js"></script>
+<script src="/admin/js/api.js"></script>
+<script src="/admin/js/components.js"></script>
+<script>
+let page = 1, searchTimer;
+
+function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { page = 1; loadUsers(); }, 400); }
+
+async function loadUsers() {
+  const search = document.getElementById('search').value;
+  const data = await API.users.list({ page, limit: 20, ...(search && { search }) });
+  document.getElementById('tableBody').innerHTML = UI.renderTable(
+    [
+      { key:'id', label:'ID' },
+      { key:'username', label:'用户名' },
+      { key:'email', label:'邮箱', render: r => r.email || '-' },
+      { key:'isAdmin', label:'管理员', render: r => r.isAdmin ? UI.statusBadge('super_admin') : '普通用户' },
+      { key:'role', label:'角色', render: r => r.role || '-' },
+      { key:'createdAt', label:'注册时间', render: r => UI.formatDate(r.createdAt) },
+    ],
+    data.data,
+    row => {
+      let btns = '';
+      if (!row.isAdmin) {
+        btns += `<button class="btn btn-sm btn-outline" onclick="promoteUser(${row.id})">设为管理员</button>`;
+      } else if (Auth.isSuperAdmin() && row.id !== Auth.getUser()?.id) {
+        btns += `<button class="btn btn-sm btn-outline" onclick="changeRole(${row.id},'${row.role}')">切换角色</button>`;
+        btns += `<button class="btn btn-sm btn-outline" onclick="demoteUser(${row.id})">取消管理员</button>`;
+      }
+      if (row.id !== Auth.getUser()?.id) {
+        btns += `<button class="btn btn-sm btn-danger" onclick="deleteUser(${row.id})">删除</button>`;
+      }
+      return btns;
+    }
+  );
+  document.getElementById('pagination').innerHTML = UI.renderPagination(data.pagination, 'goPage');
+}
+
+function goPage(p) { page = p; loadUsers(); }
+
+async function promoteUser(id) {
+  await API.users.update(id, { isAdmin: true, role: 'content_admin' });
+  UI.toast('已设为管理员', 'success');
+  loadUsers();
+}
+
+async function demoteUser(id) {
+  UI.modal('取消管理员', '<p>确定要取消此用户的管理员权限吗？</p>', async () => {
+    await API.users.update(id, { isAdmin: false, role: null });
+    UI.toast('已取消管理员权限', 'success');
+    loadUsers();
+  });
+}
+
+async function changeRole(id, currentRole) {
+  const roles = ['super_admin', 'content_admin', 'analyst'];
+  const nextRole = roles[(roles.indexOf(currentRole) + 1) % roles.length];
+  await API.users.update(id, { role: nextRole });
+  UI.toast(`角色已切换为 ${nextRole}`, 'success');
+  loadUsers();
+}
+
+function showCreateAdmin() {
+  UI.modal('新建管理员', `
+    <div class="form-group"><label>用户名</label><input class="form-control" id="newUsername"></div>
+    <div class="form-group"><label>密码</label><input class="form-control" id="newPassword" type="password"></div>
+    <div class="form-group"><label>邮箱（可选）</label><input class="form-control" id="newEmail"></div>
+    <div class="form-group"><label>角色</label><select class="form-control" id="newRole">
+      <option value="content_admin">内容管理员</option>
+      <option value="analyst">数据分析师</option>
+      <option value="super_admin">超级管理员</option>
+    </select></div>
+  `, async () => {
+    await API.users.create({
+      username: document.getElementById('newUsername').value,
+      password: document.getElementById('newPassword').value,
+      email: document.getElementById('newEmail').value,
+      role: document.getElementById('newRole').value,
+    });
+    UI.toast('管理员创建成功', 'success');
+    loadUsers();
+  });
+}
+
+async function deleteUser(id) {
+  UI.modal('确认删除', '<p>此操作不可恢复。确定要删除该用户及其所有数据吗？</p>', async () => {
+    await API.users.delete(id);
+    UI.toast('用户已删除', 'success');
+    loadUsers();
+  });
+}
+
+(async () => {
+  if (!await Auth.guard(['super_admin'])) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('users');
+  document.getElementById('header').innerHTML = UI.renderHeader('用户管理');
+  loadUsers();
+})();
+</script>
+</body>
+</html>

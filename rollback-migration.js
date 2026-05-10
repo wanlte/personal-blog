@@ -8,6 +8,8 @@
 //
 // 工作原理:
 //   1. 读取 prisma/migrations/ 目录获取已应用的迁移列表
+
+const config = require('./config');
 //   2. 从 _prisma_migrations 表查询数据库中的应用记录
 //   3. 逆序执行 down.sql（如果存在）
 //   4. 使用 prisma migrate resolve --rolled-back 标记回滚
@@ -154,7 +156,7 @@ function main() {
   console.log(`   模式: ${DRY_RUN ? 'DRY-RUN (预览)' : '执行回滚'}`);
   console.log('');
 
-  if (!process.env.DATABASE_URL) {
+  if (!config.database.url) {
     console.error('❌ 未设置 DATABASE_URL 环境变量');
     process.exit(1);
   }

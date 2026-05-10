@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据统计 - 管理后台</title>
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<div id="sidebar"></div>
+<div class="main">
+  <div id="header"></div>
+  <div class="content">
+    <div class="stats-grid" id="statsCards"></div>
+    <div class="chart-container"><h3>📈 最近 30 天趋势对比</h3><canvas id="trendChart" style="height:360px"></canvas></div>
+    <div class="charts-row">
+      <div class="chart-container"><h3>📊 内容类型分布</h3><canvas id="contentChart"></canvas></div>
+      <div class="chart-container"><h3>📋 热门文章 TOP10</h3><div id="hotArticles" style="max-height:300px;overflow-y:auto"></div></div>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/auth.js"></script>
+<script src="/admin/js/api.js"></script>
+<script src="/admin/js/components.js"></script>
+<script src="/admin/js/charts.js"></script>
+<script>
+(async () => {
+  if (!await Auth.guard()) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('stats');
+  document.getElementById('header').innerHTML = UI.renderHeader('数据统计');
+
+  try {
+    const [stats, trends] = await Promise.all([
+      API.stats.overview(),
+      API.stats.trends(),
+    ]);
+
+    document.getElementById('statsCards').innerHTML = UI.renderStatCards(stats.counts);
+    if (trends.length) Charts.line('trendChart', trends, { series: ['articles', 'users', 'comments'] });
+    Charts.donut('contentChart', [
+      { label:'已发布', value: stats.counts.published },
+      { label:'草稿', value: stats.counts.drafts },
+      { label:'评论', value: stats.counts.comments },
+    ]);
+
+    // 热门文章（按浏览排序）
+    const sorted = [...stats.recentArticles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10);
+    document.getElementById('hotArticles').innerHTML = sorted.length
+      ? sorted.map((a, i) =>
+          `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px">
+            <span style="color:var(--text-muted)">#${i+1}</span>
+            <span style="flex:1">${a.title}</span>
+            <span>👁 ${a.views || 0}</span>
+            <span>${UI.statusBadge(a.status)}</span>
+          </div>`
+        ).join('')
+      : '<div class="empty-state">暂无数据</div>';
+  } catch (err) {
+    UI.toast('加载失败: ' + err.message, 'error');
+  }
+})();
+</script>
+</body>
+</html>

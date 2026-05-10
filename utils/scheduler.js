@@ -37,7 +37,7 @@ function register(job) {
 
 // 执行单个任务
 async function executeJob(entry) {
-  const { name } = entry.config;
+  const { name, onError } = entry.config;
   const start = Date.now();
   logger.info(`[定时任务] ${name} 开始执行`);
 
@@ -49,6 +49,9 @@ async function executeJob(entry) {
   } catch (err) {
     const duration = Date.now() - start;
     logger.error(`[定时任务] ${name} 执行失败 (${duration}ms): ${err.message}`, { stack: err.stack });
+    if (typeof onError === 'function') {
+      try { await onError(err); } catch (_) { /* onError 自身失败不影响调度器 */ }
+    }
     return { success: false, duration, error: err.message };
   }
 }

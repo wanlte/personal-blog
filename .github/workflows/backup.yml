@@ -1,0 +1,63 @@
+name: Backup & Restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '操作类型'
+        required: true
+        type: choice
+        options:
+          - backup-full
+          - backup-incremental
+          - list-backups
+      restore_file:
+        description: '要恢复的备份文件名（仅恢复操作时需要）'
+        required: false
+        default: ''
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  backup:
+    name: Backup / Restore
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Execute operation
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd "${DEPLOY_PATH:-/var/www/blog}"
+
+            case "${{ inputs.action }}" in
+              backup-full)
+                echo "触发全量备份..."
+                node scripts/backup/backup.js --type full
+                ;;
+              backup-incremental)
+                echo "触发增量备份..."
+                node scripts/backup/backup.js --type incremental
+                ;;
+              list-backups)
+                echo "列出可用备份..."
+                node scripts/backup/restore.js --list
+                ;;
+            esac
+
+      - name: Send notification
+        if: always()
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "备份操作 ${{ inputs.action }} 已完成"

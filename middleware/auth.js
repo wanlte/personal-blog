@@ -1,6 +1,7 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'your-secret-key-2024';
+const config = require('../config');
+const JWT_SECRET = config.jwt.secret;
 
 // 认证中间件（用于需要登录的接口）
 function authenticateToken(req, res, next) {

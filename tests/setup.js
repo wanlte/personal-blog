@@ -8,3 +8,5 @@ process.env.LOG_LEVEL = 'silent';
 process.env.DATABASE_POOL_SIZE = '10';
 process.env.DATABASE_CONNECTION_TIMEOUT = '10000';
 process.env.JWT_SECRET = 'your-secret-key-2024';
+process.env.ENCRYPTION_KEY = 'v1:test1234test1234test1234test1234test1234test1234test1234test1234';
+process.env.ENCRYPTION_IV = 'test_iv_2026_test_encryption_iv_';

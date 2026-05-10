@@ -127,7 +127,7 @@ router.get('/drafts/list', authenticateToken, getDrafts);
  *       404:
  *         description: 文章不存在
  */
-router.get('/:id', optionalAuth, cacheMiddleware(CACHE_KEYS.ARTICLE_DETAIL, CACHE_TTL.ARTICLE_DETAIL), getArticle);
+router.get('/:id', optionalAuth, cacheMiddleware((req) => CACHE_KEYS.ARTICLE_DETAIL(req.params.id), CACHE_TTL.ARTICLE_DETAIL), getArticle);
 
 /**
  * @swagger

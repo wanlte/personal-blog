@@ -9,6 +9,8 @@
 //   - 自动备份提示
 //   - 迁移历史日志
 
+const config = require('./config');
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -103,7 +105,7 @@ function main() {
   console.log('');
 
   // 检查 DATABASE_URL
-  if (!process.env.DATABASE_URL) {
+  if (!config.database.url) {
     console.error('❌ 未设置 DATABASE_URL 环境变量');
     process.exit(1);
   }

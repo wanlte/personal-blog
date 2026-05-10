@@ -36,7 +36,8 @@ const options = {
       { name: '创作者', description: '创作者数据与收益' },
       { name: 'SEO', description: 'RSS 与 Sitemap' },
       { name: 'OAuth', description: 'GitHub / Google 第三方登录' },
-      { name: '管理', description: '管理员接口（定时任务控制）' },
+      { name: '管理', description: '管理员接口（内容/用户/评论/配置管理）' },
+      { name: '特性开关', description: '灰度发布与特性开关管理' },
     ],
     components: {
       securitySchemes: {

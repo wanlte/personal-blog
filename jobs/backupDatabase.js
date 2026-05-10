@@ -1,12 +1,33 @@
-// jobs/backupDatabase.js — 数据库备份
-// 每天凌晨 3:00 执行，使用 pg_dump 导出备份文件
+// jobs/backupDatabase.js - 数据库备份任务（全量 + 增量）
+// 每天凌晨 3:00 全量备份，每 6 小时增量备份
+const { fullBackup, incrementalBackup } = require('../scripts/backup/backup');
+const { sendEmail } = require('../utils/email');
+const config = require('../config');
+const logger = require('../utils/logger');
 
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const NOTIFY_EMAIL = config.backup.notificationEmail || config.mail.user || '';
 
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '..', 'backups');
-const KEEP_DAYS = parseInt(process.env.BACKUP_KEEP_DAYS || '7', 10);
+function formatSize(bytes) {
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function notify(subject, body, isWarning = false) {
+  if (!NOTIFY_EMAIL) return;
+  try {
+    await sendEmail({
+      to: NOTIFY_EMAIL,
+      subject: `[${isWarning ? '告警' : '通知'}] ${config.server.siteName} - ${subject}`,
+      html: `
+<div style="font-family: monospace; background: ${isWarning ? '#fff3cd' : '#f0fff0'}; padding: 16px; border-radius: 8px;">
+  <h3 style="margin-top: 0; color: ${isWarning ? '#856404' : '#155724'};">${subject}</h3>
+  <pre style="white-space: pre-wrap; font-size: 13px; color: #333;">${body}</pre>
+  <hr>
+  <p style="font-size: 11px; color: #999;">时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+</div>`,
+    });
+  } catch (_) { /* ignore */ }
+}
 
 module.exports = {
   name: 'backupDatabase',
@@ -14,44 +35,13 @@ module.exports = {
   timezone: 'Asia/Shanghai',
 
   async run() {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return { skipped: true, reason: 'DATABASE_URL 未设置' };
+    const result = await fullBackup();
+    await notify('全量备份完成', `文件: ${result.file}\n大小: ${formatSize(result.size)}\nSHA256: ${result.checksum}\n耗时: ${result.duration}\n清理: ${result.deleted} 个`);
+    return result;
+  },
 
-    // 确保备份目录存在
-    if (!fs.existsSync(BACKUP_DIR)) {
-      fs.mkdirSync(BACKUP_DIR, { recursive: true });
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `backup_${timestamp}.sql`;
-    const filepath = path.join(BACKUP_DIR, filename);
-
-    return new Promise((resolve, reject) => {
-      exec(`pg_dump "${dbUrl}" > "${filepath}"`, (err) => {
-        if (err) return reject(err);
-
-        const stat = fs.statSync(filepath);
-
-        // 清理超过保留天数的备份
-        const files = fs.readdirSync(BACKUP_DIR)
-          .filter((f) => f.startsWith('backup_') && f.endsWith('.sql'))
-          .sort();
-        const cutoff = Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000;
-        let deleted = 0;
-        for (const f of files) {
-          const fp = path.join(BACKUP_DIR, f);
-          if (fs.statSync(fp).mtimeMs < cutoff) {
-            fs.unlinkSync(fp);
-            deleted++;
-          }
-        }
-
-        resolve({
-          file: filename,
-          size: stat.size,
-          deletedOldBackups: deleted,
-        });
-      });
-    });
+  async onError(err) {
+    logger.error(`[backupDatabase] 全量备份失败: ${err.message}`);
+    await notify('全量备份失败', `错误: ${err.message}\n时间: ${new Date().toISOString()}`, true);
   },
 };

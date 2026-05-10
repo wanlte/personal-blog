@@ -85,7 +85,7 @@ async function loadArticle() {
                     <span>⭐ ${article.collect_count || 0}</span>
                 </div>
                 <div class="detail-content markdown-body" id="articleContent">
-                    ${marked.parse(article.content || '暂无内容')}
+                    ${typeof marked !== 'undefined' ? marked.parse(article.content || '暂无内容') : escapeHtml(article.content || '暂无内容')}
                 </div>
                 <div class="article-tags" id="articleTags"></div>
 

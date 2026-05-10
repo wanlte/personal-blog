@@ -84,6 +84,14 @@ async function register(req, res) {
             userId: user.id,
             subscription
         });
+
+        req.audit?.log({
+          userId: user.id,
+          action: 'USER_REGISTER',
+          resourceType: 'user',
+          resourceId: user.id,
+          newValue: { username },
+        });
     } catch (error) {
         console.error('注册错误:', error);
         res.status(500).json({ error: '服务器错误' });
@@ -130,6 +138,14 @@ async function login(req, res) {
                 id: user.id,
                 username: user.username
             }
+        });
+
+        req.audit?.log({
+          userId: user.id,
+          action: 'USER_LOGIN',
+          resourceType: 'user',
+          resourceId: user.id,
+          newValue: { username: user.username },
         });
     } catch (error) {
         console.error('登录失败:', error);

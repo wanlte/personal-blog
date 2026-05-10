@@ -7,6 +7,8 @@ process.env.LOG_LEVEL = 'silent';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
   || 'postgresql://postgres:123456@localhost:5432/blog_test?schema=public';
 process.env.JWT_SECRET = 'test-secret-key-2024';
+process.env.ENCRYPTION_KEY = 'v1:test1234test1234test1234test1234test1234test1234test1234test1234';
+process.env.ENCRYPTION_IV = 'test_iv_2026_test_encryption_iv_';
 
 const app = require('../app');
 const PORT = process.env.E2E_PORT || 3001;

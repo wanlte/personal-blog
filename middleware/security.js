@@ -3,6 +3,7 @@
 
 const helmet = require('helmet');
 const cors = require('cors');
+const config = require('../config');
 
 // ============ Helmet 安全头配置 ============
 const helmetConfig = {
@@ -22,7 +23,7 @@ const helmetConfig = {
       baseUri: ["'self'"],
       upgradeInsecureRequests: [],
     },
-    reportOnly: process.env.NODE_ENV === 'development' ? true : false,
+    reportOnly: config.server.nodeEnv === 'development' ? true : false,
   },
   
   // 防止点击劫持
@@ -67,7 +68,7 @@ function getAllowedOrigins() {
   const origins = [];
 
   // 开发环境：允许本地开发服务器
-  if (process.env.NODE_ENV === 'development') {
+  if (config.server.nodeEnv === 'development') {
     origins.push(
       'http://localhost:3000',
       'http://localhost:5500',
@@ -77,14 +78,14 @@ function getAllowedOrigins() {
   }
 
   // 通过环境变量配置的生产域名（逗号分隔）
-  const envOrigins = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '';
+  const envOrigins = config.cors.allowedOrigins || config.cors.frontendUrl || '';
   envOrigins.split(',').forEach((o) => {
     const trimmed = o.trim();
     if (trimmed) origins.push(trimmed);
   });
 
   // 允许 cyclic.app 部署的子域名
-  if (process.env.ALLOW_CYCLIC === 'true') {
+  if (config.cors.allowCyclic) {
     origins.push(/\.cyclic\.app$/);
   }
 
@@ -138,7 +139,7 @@ const corsOptions = {
   credentials: true,
 
   // 预检请求缓存 1 小时（生产）；开发环境缓存 10 分钟
-  maxAge: process.env.NODE_ENV === 'development' ? 600 : 3600,
+  maxAge: config.server.nodeEnv === 'development' ? 600 : 3600,
 
   optionsSuccessStatus: 204,
 };

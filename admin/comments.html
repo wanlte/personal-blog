@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评论管理 - 管理后台</title>
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<div id="sidebar"></div>
+<div class="main">
+  <div id="header"></div>
+  <div class="content">
+    <div class="table-card">
+      <div class="table-header">
+        <h2>💬 评论管理</h2>
+        <select class="form-control" id="statusFilter" style="width:140px" onchange="loadComments()">
+          <option value="">全部</option>
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+        </select>
+        <span class="spacer"></span>
+      </div>
+      <div id="tableBody"></div>
+      <div id="pagination"></div>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/auth.js"></script>
+<script src="/admin/js/api.js"></script>
+<script src="/admin/js/components.js"></script>
+<script>
+let page = 1;
+
+async function loadComments() {
+  const status = document.getElementById('statusFilter').value;
+  const data = await API.comments.list({ page, limit: 20, ...(status && { status }) });
+  document.getElementById('tableBody').innerHTML = UI.renderTable(
+    [
+      { key:'id', label:'ID' },
+      { key:'user', label:'用户', render: r => r.user?.username || r.userName || '匿名' },
+      { key:'content', label:'评论内容', render: r => r.content?.length > 80 ? r.content.slice(0, 80) + '...' : r.content },
+      { key:'article', label:'文章', render: r => `<a href="/article.html?id=${r.article?.id}" target="_blank">${r.article?.title || '-'}</a>` },
+      { key:'status', label:'状态', render: r => r.status ? UI.statusBadge(r.status) : '-' },
+      { key:'createdAt', label:'时间', render: r => UI.formatDate(r.createdAt) },
+    ],
+    data.data,
+    row => `<button class="btn btn-sm btn-danger" onclick="deleteComment(${row.id})">删除</button>`
+  );
+  document.getElementById('pagination').innerHTML = UI.renderPagination(data.pagination, 'goPage');
+}
+
+function goPage(p) { page = p; loadComments(); }
+
+async function deleteComment(id) {
+  UI.modal('确认删除', '<p>确定要删除这条评论吗？</p>', async () => {
+    await API.comments.delete(id);
+    UI.toast('评论已删除', 'success');
+    loadComments();
+  });
+}
+
+(async () => {
+  if (!await Auth.guard(['super_admin', 'content_admin'])) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('comments');
+  document.getElementById('header').innerHTML = UI.renderHeader('评论管理');
+  loadComments();
+})();
+</script>
+</body>
+</html>

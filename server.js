@@ -1,4 +1,7 @@
 // server.js - 博客服务器入口
+// 配置模块必须最先加载，确保 .env 文件在其他模块读取 process.env 前完成注入
+const config = require('./config');
+
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
@@ -11,7 +14,7 @@ cache.connect();
 database.connect();
 
 const app = express();
-const PORT = 3000;
+const PORT = config.server.port;
 
 // 中间件
 const requestLogger = require('./middleware/requestLogger');
@@ -33,8 +36,14 @@ app.use(compression());
 app.use(express.json());
 app.use(require('passport').initialize());
 
-// 4.5 API 文档（仅非生产环境可访问）
-if (process.env.NODE_ENV !== 'production') {
+// 4.5 审计日志中间件（在路由之前注册，提供 req.audit）
+app.use(require('./middleware/auditLogger'));
+
+// 4.6 特性开关中间件（在审计之后、路由之前，为所有请求注入 req.featureFlags）
+app.use(require('./middleware/featureFlags').featureFlags());
+
+// 4.7 API 文档（仅非生产环境可访问）
+if (config.server.nodeEnv !== 'production') {
     const swaggerUi = require('swagger-ui-express');
     const swaggerSpec = require('./config/swagger');
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -72,8 +81,10 @@ app.use('/api/upload', uploadRoutes);  // /api/upload
 app.use('/api/subscription', subscriptionRoutes); // /api/subscription/*
 app.use('/api', interactRoutes);                   // /api/authors, /api/users, /api/articles/:id/like etc.
 app.use('/api/creator', creatorRoutes);             // /api/creator/*
-app.use('/api/admin', require('./routes/admin'));   // /api/admin/jobs
+app.use('/api/admin', require('./routes/admin'));   // /api/admin/*
+app.use('/api/audit', require('./routes/audit')); // /api/audit/logs
 app.use('/api', healthRoutes);                  // /api/health/db
+app.use('/api', require('./routes/featureFlags')); // /api/features
 app.use('/', seoRoutes);               // /rss.xml, /sitemap.xml
 
 // 静态文件缓存
@@ -86,6 +97,11 @@ app.use(express.static('public', {
 // 提供上传文件访问
 app.use('/uploads', express.static('uploads', {
     maxAge: 30 * 24 * 60 * 60 * 1000,
+}));
+
+// 管理后台静态文件
+app.use('/admin', express.static('admin', {
+    maxAge: 60 * 1000,
 }));
 
 // 6. 404 — 所有路由和静态文件都未匹配
@@ -101,10 +117,17 @@ scheduler.register(require('./jobs/cleanupExpiredTokens'));
 scheduler.register(require('./jobs/statsAggregation'));
 scheduler.register(require('./jobs/backupDatabase'));
 scheduler.register(require('./jobs/subscriptionChecker'));
+scheduler.register(require('./jobs/auditRetention'));
+
+// 注册备份定时任务（全量 + 增量 + 空间监控）
+const { incrementalBackupJob, spaceMonitorJob } = require('./scripts/backup/schedule');
+scheduler.register(incrementalBackupJob);
+scheduler.register(spaceMonitorJob);
 
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);
+    console.log(`环境: ${config.server.nodeEnv}`);
     console.log(`定时任务: ${scheduler.getAllJobs().map(j => j.name).join(', ')}`);
 });
 

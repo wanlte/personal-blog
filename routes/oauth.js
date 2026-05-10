@@ -6,6 +6,7 @@ const express = require('express');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
+const config = require('../config');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -49,7 +50,7 @@ function generateToken(user) {
 
 function oauthCallbackRedirect(req, res) {
   const token = generateToken(req.user);
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const frontendUrl = config.cors.frontendUrl;
   const redirectUrl = `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(req.user.username)}&userId=${req.user.id}`;
 
   logger.info(`OAuth 登录成功: ${req.user.username} (${req.user.oauthProvider})`);
@@ -90,7 +91,7 @@ if (githubStrategy) {
     '/auth/github/callback',
     passport.authenticate('github', {
       session: false,
-      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+      failureRedirect: `${config.cors.frontendUrl}/login?error=oauth_failed`,
     }),
     oauthCallbackRedirect
   );
@@ -130,7 +131,7 @@ if (googleStrategy) {
     '/auth/google/callback',
     passport.authenticate('google', {
       session: false,
-      failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+      failureRedirect: `${config.cors.frontendUrl}/login?error=oauth_failed`,
     }),
     oauthCallbackRedirect
   );
@@ -139,7 +140,7 @@ if (googleStrategy) {
 // ——— OAuth 错误处理 ———
 router.use((err, req, res, _next) => {
   logger.error(`OAuth 错误: ${err.message}`, { stack: err.stack });
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const frontendUrl = config.cors.frontendUrl;
   res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err.message)}`);
 });
 

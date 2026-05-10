@@ -1,13 +1,14 @@
 // utils/email.js - 邮件通知服务
 const nodemailer = require('nodemailer');
+const config = require('../config');
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.qq.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465');
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const FROM_ADDRESS = process.env.SMTP_FROM || SMTP_USER;
-const SITE_NAME = process.env.SITE_NAME || '个人博客';
-const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
+const SMTP_HOST = config.mail.host;
+const SMTP_PORT = config.mail.port;
+const SMTP_USER = config.mail.user;
+const SMTP_PASS = config.mail.pass;
+const FROM_ADDRESS = config.mail.from || SMTP_USER;
+const SITE_NAME = config.server.siteName;
+const SITE_URL = config.server.siteUrl;
 
 // 创建传输器（lazy init）
 let transporter = null;

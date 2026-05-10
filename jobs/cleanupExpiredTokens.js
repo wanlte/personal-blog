@@ -1,6 +1,7 @@
 // jobs/cleanupExpiredTokens.js — 清理过期数据
 // 每天凌晨 1:00 执行，清理过期的订阅、支付记录、旧日志等
 
+const config = require('../config');
 const prisma = require('../db/index');
 const fs = require('fs');
 const path = require('path');
@@ -34,7 +35,7 @@ module.exports = {
     results.pendingPayments = pendingPayments.count;
 
     // 3. 清理旧的备份文件 (超过 30 天)
-    const backupDir = process.env.BACKUP_DIR || path.join(__dirname, '..', 'backups');
+    const backupDir = config.backup.dir || path.join(__dirname, '..', 'backups');
     let deletedBackups = 0;
     if (fs.existsSync(backupDir)) {
       const cutoffFiles = Date.now() - 30 * 24 * 60 * 60 * 1000;

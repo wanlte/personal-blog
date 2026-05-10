@@ -12,10 +12,11 @@ try {
 }
 
 const prisma = require('../db/index');
+const config = require('../config');
 const logger = require('../utils/logger');
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CLIENT_ID = config.thirdParty.google.clientId;
+const GOOGLE_CLIENT_SECRET = config.thirdParty.google.clientSecret;
 
 const googleStrategy =
   GoogleStrategy && GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
@@ -24,7 +25,7 @@ const googleStrategy =
           clientID: GOOGLE_CLIENT_ID,
           clientSecret: GOOGLE_CLIENT_SECRET,
           callbackURL:
-            process.env.GOOGLE_CALLBACK_URL ||
+            config.thirdParty.google.callbackUrl ||
             'http://localhost:3000/api/auth/google/callback',
         },
         async (accessToken, refreshToken, profile, done) => {

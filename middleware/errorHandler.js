@@ -40,7 +40,8 @@ AppError.internal = (message = '服务器内部错误', details) =>
 
 // ============ 统一错误响应格式 ============
 function formatErrorResponse(err, requestId) {
-  const isDev = process.env.NODE_ENV === 'development';
+  const config = require('../config');
+  const isDev = config.server.nodeEnv === 'development';
 
   // ——— express-validator 验证错误 ———
   // 情况1: err.errors 数组（express-validator 的 .throw() 模式或 manual pass）
@@ -215,7 +216,7 @@ function globalErrorHandler(err, req, res, _next) {
     statusCode,
     errorName: err.name,
     errorMessage: err.message,
-    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+    stack: config.server.nodeEnv !== 'production' ? err.stack : undefined,
   };
 
   if (statusCode >= 500) {

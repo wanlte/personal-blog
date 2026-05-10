@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 首页</title>
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<div id="sidebar"></div>
+<div class="main" id="main">
+  <div id="header"></div>
+  <div class="content">
+    <div class="stats-grid" id="statsCards"></div>
+    <div class="charts-row">
+      <div class="chart-container"><h3>📈 最近 30 天趋势</h3><canvas id="trendChart"></canvas></div>
+      <div class="chart-container"><h3>📊 内容分布</h3><canvas id="contentChart"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="table-card">
+        <div class="table-header"><h2>📝 最新文章</h2></div>
+        <div id="recentArticles"></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h2>👥 最新用户</h2></div>
+        <div id="recentUsers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/auth.js"></script>
+<script src="/admin/js/api.js"></script>
+<script src="/admin/js/components.js"></script>
+<script src="/admin/js/charts.js"></script>
+<script>
+(async () => {
+  if (!await Auth.guard()) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('');
+  document.getElementById('header').innerHTML = UI.renderHeader('管理首页');
+
+  try {
+    const [stats, trends] = await Promise.all([
+      API.stats.overview(),
+      API.stats.trends(),
+    ]);
+
+    document.getElementById('statsCards').innerHTML = UI.renderStatCards(stats.counts);
+
+    // 最近文章
+    document.getElementById('recentArticles').innerHTML = UI.renderTable(
+      [{ key:'id', label:'ID' }, { key:'title', label:'标题' }, { key:'status', label:'状态', render:r=>UI.statusBadge(r.status) }, { key:'views', label:'浏览' }],
+      stats.recentArticles
+    );
+
+    // 最近用户
+    document.getElementById('recentUsers').innerHTML = UI.renderTable(
+      [{ key:'id', label:'ID' }, { key:'username', label:'用户名' }, { key:'email', label:'邮箱' }, { key:'isAdmin', label:'管理员', render:r=>r.isAdmin?'✅':'❌' }],
+      stats.recentUsers
+    );
+
+    // 趋势图
+    if (trends.length) Charts.line('trendChart', trends, { series: ['articles', 'users', 'comments'] });
+
+    // 内容分布饼图
+    const count = stats.counts;
+    Charts.donut('contentChart', [
+      { label:'已发布', value: count.published },
+      { label:'草稿', value: count.drafts },
+      { label:'用户', value: count.users },
+      { label:'评论', value: count.comments },
+    ]);
+  } catch (err) {
+    UI.toast('加载数据失败: ' + err.message, 'error');
+  }
+})();
+</script>
+</body>
+</html>

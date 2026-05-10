@@ -1,11 +1,12 @@
 // strategies/github.js — Passport GitHub OAuth 策略
 
 const GitHubStrategy = require('passport-github2').Strategy;
+const config = require('../config');
 const prisma = require('../db/index');
 const logger = require('../utils/logger');
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+const GITHUB_CLIENT_ID = config.thirdParty.github.clientId;
+const GITHUB_CLIENT_SECRET = config.thirdParty.github.clientSecret;
 
 const githubStrategy =
   GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET
@@ -14,7 +15,7 @@ const githubStrategy =
           clientID: GITHUB_CLIENT_ID,
           clientSecret: GITHUB_CLIENT_SECRET,
           callbackURL:
-            process.env.GITHUB_CALLBACK_URL ||
+            config.thirdParty.github.callbackUrl ||
             'http://localhost:3000/api/auth/github/callback',
           scope: ['user:email'],
         },

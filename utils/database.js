@@ -5,9 +5,10 @@ const prisma = require('../db/index');
 const logger = require('./logger');
 
 // ============ 连接池配置 ============
+const config = require('../config');
 const poolConfig = {
-  size: parseInt(process.env.DATABASE_POOL_SIZE, 10) || 10,
-  connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT, 10) || 10000,
+  size: config.database.poolSize,
+  connectionTimeout: config.database.connectionTimeout,
 };
 
 // ============ 连接状态 ============

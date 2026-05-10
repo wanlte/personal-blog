@@ -1,8 +1,9 @@
 // utils/cache.js - Redis 缓存工具
 const redis = require('redis');
+const config = require('../config');
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
-const SKIP_REDIS = process.env.SKIP_REDIS === 'true';
+const REDIS_URL = config.redis.url;
+const SKIP_REDIS = config.redis.skip;
 
 let client = null;
 let isConnected = false;

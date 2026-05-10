@@ -1,0 +1,195 @@
+name: Canary Deploy (灰度部署)
+
+on:
+  workflow_dispatch:
+    inputs:
+      canary_percentage:
+        description: '初始灰度比例 (1-100)'
+        required: true
+        default: '10'
+      feature_flag_name:
+        description: '特性开关名称（用于路由灰度流量）'
+        required: true
+        default: 'CANARY_DEPLOY'
+      auto_promote:
+        description: '监控期后自动提升到 100%'
+        type: boolean
+        default: false
+      monitoring_minutes:
+        description: '监控时长（分钟）'
+        default: '10'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build & Push Canary Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build canary Docker image
+        run: docker build -t blog-canary:${{ github.sha }} .
+
+      - name: Push image to server
+        run: |
+          docker save blog-canary:${{ github.sha }} | \
+            ssh -o StrictHostKeyChecking=no \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "docker load && docker tag blog-canary:${{ github.sha }} blog-canary:latest"
+
+  canary-deploy:
+    name: Deploy Canary Container
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start canary on port 3001
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd "${DEPLOY_PATH:-/var/www/blog}"
+
+            # Upload docker-compose.canary.yml (already in repo)
+            # Stop old canary if any
+            docker compose -f docker-compose.canary.yml down --remove-orphans 2>/dev/null || true
+
+            # Start canary
+            docker compose -f docker-compose.canary.yml up -d
+
+            # Health check loop (max 60s)
+            for i in $(seq 1 30); do
+              STATUS=$(curl -sf http://localhost:3001/api/health/db | jq -r '.success' 2>/dev/null || echo 'fail')
+              if [ "$STATUS" = "true" ]; then
+                echo "✅ Canary healthy after ${i}s"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "❌ Canary health check FAILED after 60s"
+                docker compose -f docker-compose.canary.yml down
+                exit 1
+              fi
+              sleep 2
+            done
+
+      - name: Set feature flag percentage
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Login as admin and update feature flag
+            ADMIN_TOKEN=$(curl -sf -X POST http://localhost:3000/api/admin/login \
+              -H 'Content-Type: application/json' \
+              -d "{\"username\":\"$CANARY_ADMIN_USER\",\"password\":\"$CANARY_ADMIN_PASS\"}" | jq -r '.token')
+
+            curl -sf -X PUT "http://localhost:3000/api/admin/features/${{ inputs.feature_flag_name }}" \
+              -H "Authorization: Bearer $ADMIN_TOKEN" \
+              -H 'Content-Type: application/json' \
+              -d "{\"enabled\":true,\"percentage\":${{ inputs.canary_percentage }}}"
+
+            echo "✅ Feature flag '${{ inputs.feature_flag_name }}' set to ${{ inputs.canary_percentage }}%"
+
+  monitor:
+    name: Monitor & Promote Canary
+    needs: canary-deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Health monitoring loop
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            MONITOR_MINUTES=${{ inputs.monitoring_minutes || 10 }}
+            CHECK_INTERVAL=30
+            MAX_CHECKS=$((MONITOR_MINUTES * 2))
+            FAIL_COUNT=0
+
+            for i in $(seq 1 $MAX_CHECKS); do
+              CANARY_OK=$(curl -sf http://localhost:3001/api/health/db | jq -r '.success' 2>/dev/null || echo 'false')
+              MAIN_OK=$(curl -sf http://localhost:3000/api/health/db | jq -r '.success' 2>/dev/null || echo 'false')
+
+              if [ "$CANARY_OK" != "true" ]; then
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                echo "⚠️  Canary health check $i FAILED (consecutive failures: $FAIL_COUNT)"
+                if [ $FAIL_COUNT -ge 3 ]; then
+                  echo "❌ Canary failed 3 consecutive checks — rolling back"
+                  ADMIN_TOKEN=$(curl -sf -X POST http://localhost:3000/api/admin/login \
+                    -H 'Content-Type: application/json' \
+                    -d "{\"username\":\"$CANARY_ADMIN_USER\",\"password\":\"$CANARY_ADMIN_PASS\"}" | jq -r '.token')
+                  curl -sf -X PUT "http://localhost:3000/api/admin/features/${{ inputs.feature_flag_name }}" \
+                    -H "Authorization: Bearer $ADMIN_TOKEN" \
+                    -H 'Content-Type: application/json' \
+                    -d '{"enabled":false,"percentage":0}'
+                  cd "${DEPLOY_PATH:-/var/www/blog}"
+                  docker compose -f docker-compose.canary.yml down
+                  exit 1
+                fi
+              else
+                FAIL_COUNT=0
+                echo "✅ Check $i/$MAX_CHECKS OK (canary=$CANARY_OK, main=$MAIN_OK)"
+              fi
+
+              if [ $i -lt $MAX_CHECKS ]; then
+                sleep $CHECK_INTERVAL
+              fi
+            done
+
+            echo "✅ Monitoring period completed — canary is stable"
+
+      - name: Auto-promote to 100%
+        if: inputs.auto_promote
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            ADMIN_TOKEN=$(curl -sf -X POST http://localhost:3000/api/admin/login \
+              -H 'Content-Type: application/json' \
+              -d "{\"username\":\"$CANARY_ADMIN_USER\",\"password\":\"$CANARY_ADMIN_PASS\"}" | jq -r '.token')
+
+            curl -sf -X PUT "http://localhost:3000/api/admin/features/${{ inputs.feature_flag_name }}" \
+              -H "Authorization: Bearer $ADMIN_TOKEN" \
+              -H 'Content-Type: application/json' \
+              -d '{"enabled":true,"percentage":100}'
+
+            echo "🚀 Canary promoted to 100%. Run full deploy to replace main instance."
+
+  rollback:
+    name: Emergency Rollback
+    if: failure()
+    needs: [canary-deploy, monitor]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Disable flag and stop canary
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            ADMIN_TOKEN=$(curl -sf -X POST http://localhost:3000/api/admin/login \
+              -H 'Content-Type: application/json' \
+              -d "{\"username\":\"$CANARY_ADMIN_USER\",\"password\":\"$CANARY_ADMIN_PASS\"}" | jq -r '.token')
+
+            curl -sf -X PUT "http://localhost:3000/api/admin/features/${{ inputs.feature_flag_name }}" \
+              -H "Authorization: Bearer $ADMIN_TOKEN" \
+              -H 'Content-Type: application/json' \
+              -d '{"enabled":false,"percentage":0}'
+
+            cd "${DEPLOY_PATH:-/var/www/blog}"
+            docker compose -f docker-compose.canary.yml down
+
+            echo "🔄 Rollback complete — canary disabled and container removed"

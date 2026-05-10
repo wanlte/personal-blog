@@ -1,6 +1,7 @@
 // jobs/cacheWarmer.js — 缓存预热
 // 服务启动时执行一次，预加载热门数据到 Redis
 
+const config = require('../config');
 const cache = require('../utils/cache');
 const prisma = require('../db/index');
 
@@ -8,7 +9,7 @@ module.exports = {
   name: 'cacheWarmer',
   schedule: null,  // 不通过 cron 调度，仅在 runOnInit 时执行
   runOnInit: true,
-  enabled: process.env.SKIP_REDIS !== 'true',
+  enabled: !config.redis.skip,
 
   async run() {
     if (!cache.isReady()) return { skipped: true, reason: 'Redis 不可用' };

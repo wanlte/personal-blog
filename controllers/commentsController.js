@@ -67,6 +67,14 @@ async function createComment(req, res) {
             parent_id: comment.parentId,
             created_at: comment.createdAt
         });
+
+        req.audit?.log({
+          userId: userId || undefined,
+          action: 'COMMENT_CREATE',
+          resourceType: 'comment',
+          resourceId: comment.id,
+          newValue: { content: comment.content, articleId: parseInt(id), parentId: parentId ? parseInt(parentId) : null },
+        });
     } catch (error) {
         console.error('发表评论失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -129,7 +137,14 @@ async function deleteComment(req, res) {
         await prisma.comment.delete({
             where: { id: parseInt(id) }
         });
-        
+
+        req.audit?.log({
+          action: 'COMMENT_DELETE',
+          resourceType: 'comment',
+          resourceId: parseInt(id),
+          oldValue: { content: comment.content, articleId: comment.articleId },
+        });
+
         res.json({ message: '评论删除成功' });
     } catch (error) {
         console.error('删除评论失败:', error.message);

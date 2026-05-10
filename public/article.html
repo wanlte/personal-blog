@@ -10,9 +10,6 @@
     <meta property="og:url" content="" id="og-url">
     <meta property="og:image" content="/default-og-image.png">
     <link rel="stylesheet" href="/style.css">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <!-- 添加 marked.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="application/ld+json" id="json-ld">
     {
         "@context": "https://schema.org",
@@ -107,6 +104,16 @@
         </div>
     </footer>
 
+    <!-- marked.js Markdown 解析（本地加载） -->
+    <script src="/js/marked.umd.js"></script>
+    <script>
+        // 等待 marked 加载后再加载页面脚本
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof marked === 'undefined') {
+                console.error('marked.js 未加载');
+            }
+        });
+    </script>
     <script src="/article.js"></script>
     <script src="/comments.js"></script>
 </body>

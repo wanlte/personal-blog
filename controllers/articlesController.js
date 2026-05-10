@@ -184,6 +184,13 @@ async function createArticle(req, res) {
             views: 0,
             message: '文章创建成功'
         });
+
+        req.audit?.log({
+          action: 'ARTICLE_CREATE',
+          resourceType: 'article',
+          resourceId: article.id,
+          newValue: { title, summary: summary || '', status: 'published' },
+        });
     } catch (error) {
         console.error('创建失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -228,6 +235,14 @@ async function updateArticle(req, res) {
         await clearArticleCache(parseInt(id));
 
         res.json({ message: '文章更新成功', id: parseInt(id) });
+
+        req.audit?.log({
+          action: 'ARTICLE_UPDATE',
+          resourceType: 'article',
+          resourceId: parseInt(id),
+          oldValue: { title: article.title, summary: article.summary, status: article.status },
+          newValue: { title, summary: summary || '' },
+        });
     } catch (error) {
         console.error('更新失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -261,6 +276,13 @@ async function deleteArticle(req, res) {
         await clearArticleCache(parseInt(id));
 
         res.json({ message: '文章删除成功', id: parseInt(id) });
+
+        req.audit?.log({
+          action: 'ARTICLE_DELETE',
+          resourceType: 'article',
+          resourceId: parseInt(id),
+          oldValue: { title: article.title, status: article.status },
+        });
     } catch (error) {
         console.error('删除失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -299,6 +321,14 @@ async function pinArticle(req, res) {
             message: newPinStatus === 1 ? '文章已置顶' : '已取消置顶',
             is_pinned: newPinStatus
         });
+
+        req.audit?.log({
+          action: 'ARTICLE_PIN',
+          resourceType: 'article',
+          resourceId: parseInt(id),
+          oldValue: { isPinned: article.isPinned },
+          newValue: { isPinned: newPinStatus },
+        });
     } catch (error) {
         console.error('置顶操作失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -335,6 +365,13 @@ async function saveDraft(req, res) {
         }
 
         res.json({ id: article.id, message: '草稿已保存' });
+
+        req.audit?.log({
+          action: 'ARTICLE_DRAFT_SAVE',
+          resourceType: 'article',
+          resourceId: article.id,
+          newValue: { title: title || '无标题', summary: summary || '' },
+        });
     } catch (error) {
         console.error('保存草稿失败:', error.message);
         res.status(500).json({ error: '服务器错误' });
@@ -383,6 +420,14 @@ async function publishDraft(req, res) {
         });
 
         res.json({ message: '发布成功' });
+
+        req.audit?.log({
+          action: 'ARTICLE_DRAFT_PUBLISH',
+          resourceType: 'article',
+          resourceId: parseInt(id),
+          oldValue: { status: article.status },
+          newValue: { status: 'published' },
+        });
     } catch (error) {
         console.error('发布失败:', error.message);
         res.status(500).json({ error: '服务器错误' });

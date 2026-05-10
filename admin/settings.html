@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统设置 - 管理后台</title>
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+<div id="sidebar"></div>
+<div class="main">
+  <div id="header"></div>
+  <div class="content">
+    <div id="settingsForm" class="settings-form"></div>
+    <div style="margin-top:24px">
+      <div class="table-card">
+        <div class="table-header"><h2>📋 操作日志</h2></div>
+        <div id="logsTable"></div>
+        <div id="pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/auth.js"></script>
+<script src="/admin/js/api.js"></script>
+<script src="/admin/js/components.js"></script>
+<script>
+let logPage = 1;
+
+async function loadSettings() {
+  const settings = await API.settings.get();
+  const fields = [
+    { key: 'SITE_NAME', label: '站点名称', value: settings.SITE_NAME || '' },
+    { key: 'SITE_URL', label: '站点地址', value: settings.SITE_URL || '' },
+    { key: 'SITE_DESCRIPTION', label: '站点描述', value: settings.SITE_DESCRIPTION || '' },
+    { key: 'ARTICLES_PER_PAGE', label: '每页文章数', value: settings.ARTICLES_PER_PAGE || '10' },
+    { key: 'COMMENT_APPROVAL', label: '评论审核', value: settings.COMMENT_APPROVAL || 'auto', type: 'select', options: ['auto', 'manual'] },
+    { key: 'REGISTRATION_OPEN', label: '开放注册', value: settings.REGISTRATION_OPEN || 'true', type: 'select', options: ['true', 'false'] },
+    { key: 'MAINTENANCE_MODE', label: '维护模式', value: settings.MAINTENANCE_MODE || 'false', type: 'select', options: ['false', 'true'] },
+  ];
+
+  let html = '<h3>站点设置</h3>';
+  fields.forEach(f => {
+    if (f.type === 'select') {
+      html += `<div class="form-group"><label>${f.label}</label><select class="form-control" id="set_${f.key}">${f.options.map(o => `<option value="${o}" ${f.value === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
+    } else {
+      html += `<div class="form-group"><label>${f.label}</label><input class="form-control" id="set_${f.key}" value="${f.value}"></div>`;
+    }
+  });
+  html += '<div class="form-group" style="text-align:right"><button class="btn btn-primary" onclick="saveSettings()">保存设置</button></div>';
+  document.getElementById('settingsForm').innerHTML = html;
+}
+
+async function saveSettings() {
+  const keys = ['SITE_NAME','SITE_URL','SITE_DESCRIPTION','ARTICLES_PER_PAGE','COMMENT_APPROVAL','REGISTRATION_OPEN','MAINTENANCE_MODE'];
+  const data = {};
+  keys.forEach(k => { data[k] = document.getElementById(`set_${k}`).value; });
+  await API.settings.update(data);
+  UI.toast('设置已保存', 'success');
+}
+
+async function loadLogs() {
+  const data = await API.logs.list({ page: logPage, limit: 50 });
+  document.getElementById('logsTable').innerHTML = UI.renderTable(
+    [
+      { key:'id', label:'ID' },
+      { key:'admin', label:'操作者', render: r => r.admin?.username || '-' },
+      { key:'action', label:'操作', render: r => `<span class="badge badge-info">${r.action}</span>` },
+      { key:'target', label:'目标' },
+      { key:'ip', label:'IP' },
+      { key:'createdAt', label:'时间', render: r => UI.formatDate(r.createdAt) },
+    ],
+    data.data
+  );
+  document.getElementById('pagination').innerHTML = UI.renderPagination(data.pagination, 'goLogPage');
+}
+
+function goLogPage(p) { logPage = p; loadLogs(); }
+
+(async () => {
+  if (!await Auth.guard(['super_admin'])) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('settings');
+  document.getElementById('header').innerHTML = UI.renderHeader('系统设置');
+  loadSettings();
+  loadLogs();
+})();
+</script>
+</body>
+</html>
