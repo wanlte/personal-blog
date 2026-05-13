@@ -4,6 +4,8 @@ const LoginPage = require('../../pages/LoginPage');
 
 test.describe('认证流程 (auth)', () => {
   let loginPage;
+  const username = `e2e_user_${Date.now()}`;
+  const password = 'E2ePass123';
 
   test.beforeEach(async ({ request }) => {
     loginPage = new LoginPage(request);

@@ -49,6 +49,7 @@ module.exports = [
       'coverage/',
       'public/',
       'uploads/',
+      'admin/',
       '.claude/',
     ],
   },

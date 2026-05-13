@@ -1,6 +1,6 @@
 // middleware/errorHandler.js
 // 全局错误处理中间件
-
+const config = require('../config');
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
 

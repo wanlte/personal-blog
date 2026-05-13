@@ -28,7 +28,7 @@ test.describe('评论功能 (comment)', () => {
 
   test.afterAll(async () => {
     if (articleId) {
-      try { await articlePage.delete(articleId); } catch {}
+      try { await articlePage.delete(articleId); } catch { /* ignore cleanup error */ }
     }
   });
 

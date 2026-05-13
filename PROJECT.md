@@ -106,64 +106,68 @@ personal blog/
 
 ❌ 备份恢复机制
 
-接下来需要整理一份完整的清单，列出所有已实现的功能和待完善的部分。
-
-根据我对项目的全面分析，你已经有了相当完善的企业级基础架构！以下是详细评估：
-
-✅ 已具备的企业级组件
-类别	组件	状态
-日志系统	Winston 结构化日志 + 请求追踪 ID	✅
-监控	Prometheus metrics	✅
-限流	express-rate-limit + Redis 存储	✅
-容器化	Dockerfile + Docker Compose	✅
-测试	Jest + Supertest	✅
-数据库	PostgreSQL + Prisma ORM	✅
-缓存	Redis 缓存中间件	✅
-反向代理	Nginx 配置	✅
-认证	JWT + bcrypt	✅
-验证	express-validator	✅
-优雅关闭	SIGINT 处理	✅
-压缩	gzip 压缩	✅
-❌ 距企业化还缺少的组件
-1. 安全增强（高优先级）
-缺失项	说明	AI提示词
-Helmet	安全响应头 (CSP, XSS, 点击劫持防护)	帮我添加 helmet 中间件和 CORS 配置
-CORS	跨域资源共享配置	
-XSS Sanitization	请求/响应 XSS 防护	
-SQL Injection	Prisma 有防护，但需确认	
-2. 全局错误处理（中优先级）
-缺失项	说明	AI提示词
-统一错误响应	所有错误返回统一 JSON 格式	帮我创建全局错误处理中间件
-404 处理	未匹配路由统一处理	
-Async 错误捕获	避免 async/await 未捕获错误	
-3. CI/CD 流水线（高优先级）
-缺失项	说明	AI提示词
-GitHub Actions	自动测试、构建、部署	帮我创建 GitHub Actions CI/CD 流程
-自动部署	代码推送后自动部署	
-环境检查	部署前环境验证	
-4. 运维工具（中优先级）
-缺失项	说明	AI提示词
-备份脚本	数据库自动备份	帮我创建数据库备份脚本
-健康检查端点	/health 详细健康状态	帮我添加 /health 健康检查接口
-Graceful Degradation	服务降级策略	
-告警机制	错误率/响应时间告警	
-5. API 文档（低优先级）
-缺失项	说明	AI提示词
-Swagger/OpenAPI	自动生成 API 文档	帮我用 swagger-jsdoc 生成 API 文档
-6. 高级功能（可选）
-缺失项	说明
-WebSocket	实时评论通知
-消息队列	邮件发送、通知等异步任务
-OAuth 登录	GitHub/Google 第三方登录
-后台管理	Admin 管理界面
-📊 企业化成熟度评分
-code
-┌─────────────────────────────────────────────┐
-│  安全性     ████████░░  80%                  │
-│  可观测性   █████████░  90%                  │
-│  测试       ███████░░░  70%                  │
-│  部署       █████████░  90%                  │
-│  文档       █████░░░░░  50%                  │
-│  运维工具   ████░░░░░░  40%                  │
-└─────────────────────────────────────────────┘
-        总体成熟度: 约 70%
+#	文件	核心作用	位置
+1	security.js	安全防护：Helmet 安全头 + CORS 跨域	所有请求
+2	auth.js	登录验证：JWT Token 校验	需要登录的接口
+3	adminAuth.js	权限管理：管理员/角色验证	后台管理接口
+4	rateLimiter.js	频率限制：防止接口被刷	所有请求
+5	cache.js	缓存管理：Redis 响应缓存	文章/标签接口
+6	requestLogger.js	请求日志：记录每个请求	所有请求
+7	errorHandler.js	错误处理：统一错误格式	末尾兜底
+8	auditLogger.js	审计日志：记录用户操作	需要审计的接口
+9	subscription.js	订阅验证：付费功能检查	付费内容接口
+10	featureFlags.js	特性开关：灰度发布控制	新功能接口
+11	validator.js	参数校验：验证请求数据	数据入口接口
+详细功能
+1️⃣ security.js — 安全防护
+功能	说明
+Helmet 安全头	防 XSS、点击劫持、MIME sniffing
+CORS 跨域	控制哪些域名能访问你的 API
+2️⃣ auth.js — 身份认证
+功能	说明
+authenticateToken	强制验证 Token，未登录 → 401
+optionalAuth	可选验证，不强制登录
+3️⃣ adminAuth.js — 权限管理
+功能	说明
+requireAdmin	必须是管理员
+requireRole(role)	必须是指定角色
+角色层级	superAdmin > admin > contentAdmin > ...
+4️⃣ rateLimiter.js — 频率限制
+中间件	限制
+globalLimiter	15分钟内最多 100 次
+authLimiter	15分钟内最多 5 次登录
+registerLimiter	1小时内最多 3 次注册
+apiLimiter	1分钟内最多 30 次
+5️⃣ cache.js — 响应缓存
+功能	说明
+cacheMiddleware	自动缓存接口响应
+clearArticleCache	文章变更时清除缓存
+clearTagCache	标签变更时清除缓存
+6️⃣ requestLogger.js — 请求日志
+功能	说明
+请求日志	记录方法、URL、状态码、耗时
+请求 ID	自动生成唯一追踪 ID
+7️⃣ errorHandler.js — 错误处理
+功能	说明
+AppError	自定义错误类
+asyncHandler	自动捕获异步错误
+统一格式	{ success: false, error: "..." }
+8️⃣ auditLogger.js — 审计日志
+功能	说明
+操作记录	记录谁、什么时间、做了什么操作
+自动写入	响应结束后自动写入数据库
+9️⃣ subscription.js — 订阅验证
+功能	说明
+requireSubscription	验证是否有有效订阅
+requireFeature	验证订阅是否包含某功能
+🔟 featureFlags.js — 特性开关
+功能	说明
+灰度发布	控制哪些用户能看到新功能
+快速开关	不改代码也能关闭功能
+1️⃣1️⃣ validator.js — 参数校验
+规则	验证内容
+registerRules	用户名、密码格式
+loginRules	用户名、密码非空
+articleRules	标题、内容格式
+commentRules	评论内容
+paginationRules	分页参数

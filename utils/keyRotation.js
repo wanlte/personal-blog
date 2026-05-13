@@ -45,7 +45,7 @@ function generateKey() {
  */
 function updateEnvLocal(newKey, envPath) {
   const filePath = envPath || path.join(__dirname, '..', '.env.local');
-  let content = '';
+  let content;
 
   try {
     content = fs.readFileSync(filePath, 'utf-8');

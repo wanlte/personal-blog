@@ -21,7 +21,7 @@ test.describe('文章管理 (article)', () => {
     // 清理创建的测试文章
     const ap = new ArticlePage(request, loginPage.getAuthHeaders());
     for (const id of createdArticleIds) {
-      try { await ap.delete(id); } catch {}
+      try { await ap.delete(id); } catch { /* ignore cleanup error */ }
     }
   });
 

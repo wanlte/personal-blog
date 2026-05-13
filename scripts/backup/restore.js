@@ -356,7 +356,8 @@ if (require.main === module) {
       })
       .catch(e => { console.error(e.message); process.exit(1); });
   } else if (args.includes('--file') || args.includes('-f')) {
-    const file = args[args.indexOf('--file' || '-f') + 1] || args[args.indexOf('-f') + 1];
+    const fileIndex = args.includes('--file') ? args.indexOf('--file') : args.indexOf('-f');
+    const file = fileIndex !== -1 ? args[fileIndex + 1] : undefined;
     const opts = {
       skipVerify: args.includes('--skip-verify') || args.includes('--no-verify'),
       key: args.includes('--key') ? args[args.indexOf('--key') + 1] : undefined,
