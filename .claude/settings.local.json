@@ -32,7 +32,8 @@
       "Bash(kill %1)",
       "Bash(taskkill //F //IM node.exe)",
       "Bash(chmod +x *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npm test *)"
     ]
   }
 }

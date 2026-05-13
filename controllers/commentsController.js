@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../db/index');
 const { JWT_SECRET } = require('../middleware/auth');
+const { emitToArticle, emitToAdmin } = require('../utils/websocket');
 
 // 发表评论（支持嵌套回复）
 async function createComment(req, res) {
@@ -60,13 +61,19 @@ async function createComment(req, res) {
             }
         });
 
-        res.json({
+        const commentData = {
             id: comment.id,
             content: comment.content,
             user_name: comment.userName,
             parent_id: comment.parentId,
-            created_at: comment.createdAt
-        });
+            created_at: comment.createdAt,
+        };
+
+        res.json(commentData);
+
+        // 实时通知：推送给同一文章房间的所有用户
+        emitToArticle(parseInt(id), 'comment:new', commentData);
+        emitToAdmin('stats:update');
 
         req.audit?.log({
           userId: userId || undefined,
@@ -137,6 +144,10 @@ async function deleteComment(req, res) {
         await prisma.comment.delete({
             where: { id: parseInt(id) }
         });
+
+        // 实时通知
+        emitToArticle(comment.articleId, 'comment:deleted', { id: parseInt(id) });
+        emitToAdmin('stats:update');
 
         req.audit?.log({
           action: 'COMMENT_DELETE',

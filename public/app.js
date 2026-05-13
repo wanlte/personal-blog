@@ -505,6 +505,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadArchive();
     checkAuth();
 
+    // 初始化 WebSocket
+    if (typeof BlogSocket !== 'undefined') {
+        BlogSocket.connect();
+    }
+
     // 导航栏滚动效果
     handleNavScroll();
     window.addEventListener('scroll', handleNavScroll, { passive: true });

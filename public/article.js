@@ -144,6 +144,11 @@ async function loadArticle() {
         // 加载评论
         await loadComments(articleId);
 
+        // 初始化 WebSocket 实时评论更新
+        if (typeof BlogSocket !== 'undefined') {
+            initRealtimeComments(articleId);
+        }
+
         // 绑定发表评论按钮
         document.getElementById('submitCommentBtn')?.addEventListener('click', () => {
             submitComment(articleId);

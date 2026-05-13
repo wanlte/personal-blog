@@ -3,6 +3,7 @@
 const config = require('./config');
 
 const express = require('express');
+const http = require('http');
 const path = require('path');
 const compression = require('compression');
 
@@ -14,6 +15,7 @@ cache.connect();
 database.connect();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = config.server.port;
 
 // 中间件
@@ -124,8 +126,12 @@ const { incrementalBackupJob, spaceMonitorJob } = require('./scripts/backup/sche
 scheduler.register(incrementalBackupJob);
 scheduler.register(spaceMonitorJob);
 
+// 初始化 WebSocket
+const websocket = require('./utils/websocket');
+websocket.init(server);
+
 // 启动服务器
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`);
     console.log(`环境: ${config.server.nodeEnv}`);
     console.log(`定时任务: ${scheduler.getAllJobs().map(j => j.name).join(', ')}`);
@@ -133,7 +139,9 @@ app.listen(PORT, () => {
 
 // 优雅关闭
 process.on('SIGINT', async () => {
+    console.log('\n正在关闭服务器...');
     scheduler.shutdown();
+    await websocket.shutdown();
     await database.disconnect();
     await cache.close();
     process.exit(0);
