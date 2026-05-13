@@ -28,16 +28,14 @@
     </div>
   </div>
 </div>
+<script src="/socket.io/socket.io.js"></script>
 <script src="/admin/js/auth.js"></script>
 <script src="/admin/js/api.js"></script>
 <script src="/admin/js/components.js"></script>
 <script src="/admin/js/charts.js"></script>
+<script src="/admin/js/socket-client.js"></script>
 <script>
-(async () => {
-  if (!await Auth.guard()) return;
-  document.getElementById('sidebar').innerHTML = UI.renderSidebar('');
-  document.getElementById('header').innerHTML = UI.renderHeader('管理首页');
-
+async function loadDashboard() {
   try {
     const [stats, trends] = await Promise.all([
       API.stats.overview(),
@@ -46,22 +44,18 @@
 
     document.getElementById('statsCards').innerHTML = UI.renderStatCards(stats.counts);
 
-    // 最近文章
     document.getElementById('recentArticles').innerHTML = UI.renderTable(
       [{ key:'id', label:'ID' }, { key:'title', label:'标题' }, { key:'status', label:'状态', render:r=>UI.statusBadge(r.status) }, { key:'views', label:'浏览' }],
       stats.recentArticles
     );
 
-    // 最近用户
     document.getElementById('recentUsers').innerHTML = UI.renderTable(
       [{ key:'id', label:'ID' }, { key:'username', label:'用户名' }, { key:'email', label:'邮箱' }, { key:'isAdmin', label:'管理员', render:r=>r.isAdmin?'✅':'❌' }],
       stats.recentUsers
     );
 
-    // 趋势图
     if (trends.length) Charts.line('trendChart', trends, { series: ['articles', 'users', 'comments'] });
 
-    // 内容分布饼图
     const count = stats.counts;
     Charts.donut('contentChart', [
       { label:'已发布', value: count.published },
@@ -72,6 +66,17 @@
   } catch (err) {
     UI.toast('加载数据失败: ' + err.message, 'error');
   }
+}
+
+(async () => {
+  if (!await Auth.guard()) return;
+  document.getElementById('sidebar').innerHTML = UI.renderSidebar('');
+  document.getElementById('header').innerHTML = UI.renderHeader('管理首页');
+
+  await loadDashboard();
+
+  AdminSocket.onStatsUpdate(() => loadDashboard());
+  AdminSocket.connect();
 })();
 </script>
 </body>

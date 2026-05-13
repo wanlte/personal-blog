@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db/index');
 const config = require('../config');
+const { emitToAdmin } = require('../utils/websocket');
 
 // ============ 登录 ============
 
@@ -222,6 +223,7 @@ async function updateArticle(req, res) {
     });
 
     res.json(article);
+    emitToAdmin('stats:update');
 
     req.audit?.log({
       action: 'ADMIN_ARTICLE_UPDATE',
@@ -257,6 +259,7 @@ async function deleteArticle(req, res) {
     });
 
     res.json({ success: true });
+    emitToAdmin('stats:update');
 
     req.audit?.log({
       action: 'ADMIN_ARTICLE_DELETE',
@@ -348,6 +351,7 @@ async function updateUser(req, res) {
     });
 
     res.json(user);
+    emitToAdmin('stats:update');
 
     req.audit?.log({
       action: 'ADMIN_USER_UPDATE',
@@ -389,6 +393,7 @@ async function deleteUser(req, res) {
     });
 
     res.json({ success: true });
+    emitToAdmin('stats:update');
 
     req.audit?.log({
       action: 'ADMIN_USER_DELETE',
@@ -458,6 +463,7 @@ async function deleteComment(req, res) {
     });
 
     res.json({ success: true });
+    emitToAdmin('stats:update');
 
     req.audit?.log({
       action: 'ADMIN_COMMENT_DELETE',

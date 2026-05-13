@@ -197,3 +197,8 @@ async function deleteDraft(id) {
 checkAuth();
 loadStats();
 loadDrafts();
+
+// 初始化 WebSocket
+if (typeof BlogSocket !== 'undefined') {
+    BlogSocket.connect();
+}
