@@ -1,7 +1,7 @@
 // config/base.js - 基础默认配置（所有环境共用）
 module.exports = {
   server: {
-    port: 3000,
+    port: parseInt(process.env.PORT || '3000'),
     nodeEnv: 'development',
     domain: 'localhost',
     siteName: '个人博客',
