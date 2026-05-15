@@ -1,0 +1,5 @@
+[railway]
+function = "node"
+
+[deploy]
+startCommand = "npm install && npx prisma generate && npm run db:migrate && npm start"
